@@ -519,7 +519,7 @@ body.dark .page-title { color: #E5E7EB; }
               <th class="td-right">Total</th>
               <th class="td-right admin-col">Modal Kain</th>
               <th class="td-right admin-col">Bahan Tamb.</th>
-              <th class="td-right admin-col" style="background:#1B5E20;">Untung Penjahit</th>
+              <th class="td-right admin-col" style="background:var(--green);">Untung Penjahit</th>
               <th class="td-right admin-col">Modal Std</th>
               <th class="td-center admin-col">Selisih</th>
               <th class="td-center">Status</th>
@@ -1294,7 +1294,7 @@ body.dark .page-title { color: #E5E7EB; }
 
     <!-- BULK MODE (input baru) -->
     <div id="bulk-order-section">
-      <div style="background:#E8F5E9; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#2E7D32;">
+      <div style="background:var(--green-bg); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--green);">
         💡 Pilih penjahit dulu, lalu tambahkan produk. Harga otomatis terisi dari modal standar/custom.
       </div>
       <div style="overflow-x:auto;">
@@ -2921,7 +2921,7 @@ function renderHargaStandar() {
           <th class="td-right">Modal (dibayar ke penjahit)</th>
           <th class="td-right" style="background:#1B3A6B;">Modal Kain</th>
           <th class="td-right" style="background:#4A148C;">Bahan Tambahan</th>
-          <th class="td-right" style="background:#1B5E20;">Untung Penjahit/Pcs</th>
+          <th class="td-right" style="background:var(--green);">Untung Penjahit/Pcs</th>
           <th class="td-right">Harga Jual</th>
           <th class="td-right">Untung Owner</th>
           <th class="td-right">Margin</th>
@@ -3110,7 +3110,7 @@ function onBulkCalc(n) {
   const modalKain = Math.round(getHargaKain(produk) * std.kain);
   const bahanTamb = getTotalBahanKat(kat);
   const untung = harga - modalKain - bahanTamb;
-  el.innerHTML = `<span style="color:${untung>=0?'#2E7D32':'#C62828'};font-weight:bold;">${rp(untung)}</span><br>
+  el.innerHTML = `<span style="color:${untung>=0?'var(--green)':'#C62828'};font-weight:bold;">${rp(untung)}</span><br>
     <span style="color:#666;font-size:11px;">Total: ${rp(qty*harga)}</span>`;
 }
 
@@ -3356,7 +3356,7 @@ function renderAnalisisPerPenjahit() {
       <th>Penjahit</th>
       <th class="td-right">Jml Order</th>
       <th class="td-right">Total Dibayar</th>
-      <th class="td-right" style="background:#1B5E20;">Total Untung Penjahit</th>
+      <th class="td-right" style="background:var(--green);">Total Untung Penjahit</th>
       <th class="td-right">Avg Deviasi vs Std</th>
       <th class="td-right">Order Overcharge</th>
       <th class="td-center">Status</th>
@@ -5949,8 +5949,8 @@ function printLaporan(tipe) {
   let sections = '';
 
   const headerHtml = `
-    <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #2E7D32; padding-bottom:12px;">
-      <h2 style="margin:0; color:#1B5E20;">HARMONI — Sistem Penjahit</h2>
+    <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid var(--green); padding-bottom:12px;">
+      <h2 style="margin:0; color:var(--green);">HARMONI — Sistem Penjahit</h2>
       <div style="font-size:13px; color:#555; margin-top:4px;">${labelToko} &nbsp;|&nbsp; ${labelFilter} ${labelP ? '&nbsp;|&nbsp; ' + labelP : ''}</div>
       <div style="font-size:11px; color:#888; margin-top:2px;">Dicetak: ${today()}</div>
     </div>`;
@@ -5965,9 +5965,9 @@ function printLaporan(tipe) {
       <td style="text-align:right">${rp(o.harga)}</td>
       <td style="text-align:right">${rp(o.qty * o.harga)}</td>
     </tr>`).join('');
-    sections += `<h3 style="color:#2E7D32; margin-top:20px;">📦 Orders (${data.length} order | ${totalPcs} pcs | ${rp(totalBayar)})</h3>
+    sections += `<h3 style="color:var(--green); margin-top:20px;">📦 Orders (${data.length} order | ${totalPcs} pcs | ${rp(totalBayar)})</h3>
     <table style="width:100%; border-collapse:collapse; font-size:12px;">
-      <thead><tr style="background:#E8F5E9;">
+      <thead><tr style="background:var(--green-bg);">
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Tanggal</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Penjahit</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Produk</th>
@@ -5990,9 +5990,9 @@ function printLaporan(tipe) {
       <td style="text-align:right">${a.totalKain != null ? a.totalKain.toFixed(2) + ' yd' : '—'}</td>
       <td style="text-align:right">${rp(a.grandTotal || 0)}</td>
     </tr>`).join('');
-    sections += `<h3 style="color:#2E7D32; margin-top:28px;">📤 Pengambilan Bahan (${data.length} entri | ${totalKain.toFixed(2)} yard total)</h3>
+    sections += `<h3 style="color:var(--green); margin-top:28px;">📤 Pengambilan Bahan (${data.length} entri | ${totalKain.toFixed(2)} yard total)</h3>
     <table style="width:100%; border-collapse:collapse; font-size:12px;">
-      <thead><tr style="background:#E8F5E9;">
+      <thead><tr style="background:var(--green-bg);">
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Tanggal</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Penjahit</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Produk</th>
@@ -6019,9 +6019,9 @@ function printLaporan(tipe) {
         <td style="padding:6px; border:1px solid #ccc; text-align:right;">${totalKain.toFixed(2)} yard</td>
       </tr>`;
     }).join('');
-    sections += `<h3 style="color:#2E7D32; margin-top:28px;">💰 Rekap per Penjahit</h3>
+    sections += `<h3 style="color:var(--green); margin-top:28px;">💰 Rekap per Penjahit</h3>
     <table style="width:100%; border-collapse:collapse; font-size:12px;">
-      <thead><tr style="background:#E8F5E9;">
+      <thead><tr style="background:var(--green-bg);">
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Penjahit</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:right;">Jml Order</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:right;">Total Pcs</th>
@@ -6047,9 +6047,9 @@ function printLaporan(tipe) {
         </tr>`);
       });
     });
-    sections += `<h3 style="color:#2E7D32; margin-top:20px;">📋 Harga Standar Produk</h3>
+    sections += `<h3 style="color:var(--green); margin-top:20px;">📋 Harga Standar Produk</h3>
     <table style="width:100%; border-collapse:collapse; font-size:12px;">
-      <thead><tr style="background:#E8F5E9;">
+      <thead><tr style="background:var(--green-bg);">
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Produk</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:left;">Ukuran</th>
         <th style="padding:6px; border:1px solid #ccc; text-align:right;">Modal</th>
