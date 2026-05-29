@@ -445,6 +445,7 @@ body.dark .page-title { color: #E5E7EB; }
         <table>
           <thead>
             <tr>
+              <th style="width:28px;"></th>
               <th>#</th>
               <th>Nama</th>
               <th>No. HP</th>
@@ -771,6 +772,7 @@ body.dark .page-title { color: #E5E7EB; }
         <table style="width:100%;">
           <thead>
             <tr>
+              <th style="width:28px;"></th>
               <th style="width:200px;">Nama Jenis Kain</th>
               <th class="td-right" style="width:180px;">Harga/Yard (Rp)</th>
               <th>Digunakan oleh Produk</th>
@@ -2094,7 +2096,13 @@ function getHargaKain(produk, jenisKainDipilih) {
 // Helper — list semua jenis kain dari db
 function getJenisKainList() {
   if (!db.hargaKain) return JENIS_KAIN_DEFAULT;
-  return Object.entries(db.hargaKain).map(([nama, harga]) => ({ nama, harga }));
+  const entries = Object.entries(db.hargaKain).map(([nama, harga]) => ({ nama, harga }));
+  if (db.jenisKainOrder && db.jenisKainOrder.length) {
+    const ordered = db.jenisKainOrder.filter(n => db.hargaKain[n] !== undefined).map(n => ({ nama: n, harga: db.hargaKain[n] }));
+    const extra = entries.filter(e => !db.jenisKainOrder.includes(e.nama));
+    return [...ordered, ...extra];
+  }
+  return entries;
 }
 
 // Kategori bahan tambahan per produk
@@ -2232,6 +2240,7 @@ let db = {
   proposalHarga: [],
   nextProposalId: 1,
   hargaKain: null,       // { 'Kain Putih': 25000, ... } keyed by jenis kain
+  jenisKainOrder: [],    // urutan tampil jenis kain (array of nama)
   produkKainMap: null,   // { 'Baju Putih LP': 'Kain Putih', ... }
   hargaModalOverride: {},  // per toko — override modal standar
   hargaJualOverride: {},   // per toko — override harga jual
@@ -2321,6 +2330,7 @@ async function loadFromFirestore() {
       db.penjahit        = s.penjahit        || [];
       db.bahan           = s.bahan           || null;
       db.hargaKain       = s.hargaKain       || null;
+      db.jenisKainOrder  = s.jenisKainOrder  || [];
       db.produkKainMap   = s.produkKainMap   || null;
       db.kainOverride    = s.kainOverride    || {};
       db.nextPenjahitId  = s.nextPenjahitId  || 7;
@@ -2448,6 +2458,7 @@ async function _saveDBAsync(section) {
         penjahit:       db.penjahit.map(p => { const { hargaCustom, ...rest } = p; return rest; }),
         bahan:          db.bahan,
         hargaKain:      db.hargaKain,
+        jenisKainOrder: db.jenisKainOrder || [],
         produkKainMap:  db.produkKainMap,
         kainOverride:   db.kainOverride,
         nextPenjahitId: db.nextPenjahitId,
@@ -2813,7 +2824,7 @@ function renderDashboard() {
 function renderPenjahit() {
   const tbody = document.getElementById('tbody-penjahit');
   if (!db.penjahit.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="icon">👥</div><p>Belum ada penjahit</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="icon">👥</div><p>Belum ada penjahit</p></td></tr>';
     return;
   }
   tbody.innerHTML = db.penjahit.map((p, i) => {
@@ -2823,7 +2834,8 @@ function renderPenjahit() {
     const totalAmb = ambs.reduce((s,a) => s + a.grandTotal, 0);
     const produkBadges = (p.produkList||[]).map(n =>
       `<span class="badge badge-gray" style="margin:2px;font-size:10px;">${n}</span>`).join('');
-    return `<tr>
+    return `<tr data-sort-id="${p.id}">
+      <td style="width:28px;"><span class="drag-handle" title="Seret untuk urutkan">⠿</span></td>
       <td>${i+1}</td>
       <td><strong>${p.nama}</strong><br><span style="font-size:11px;color:#888;">${p.spesialis||''}</span></td>
       <td>${p.hp || '<span style="color:#bbb">—</span>'}</td>
@@ -2840,6 +2852,12 @@ function renderPenjahit() {
       </td>
     </tr>`;
   }).join('');
+
+  makeSortable(tbody, (newOrder) => {
+    db.penjahit = newOrder.map(id => db.penjahit.find(p => String(p.id) === String(id))).filter(Boolean);
+    saveDB('shared');
+    renderPenjahit();
+  });
 }
 
 function buildProdukCheckboxes(selectedList) {
@@ -4504,6 +4522,78 @@ function switchBahanTab(tab) {
   if (tab === 'riwayat') renderRiwayatBahan();
 }
 
+// =============================================
+//  DRAG-TO-REORDER (sortable rows)
+// =============================================
+function makeSortable(tbody, onReorder) {
+  let dragging = null, placeholder = null;
+
+  function getOrderedIds() {
+    return [...tbody.querySelectorAll('tr:not(.sortable-placeholder)')].map(r => r.dataset.sortId);
+  }
+
+  function startDrag(row) {
+    dragging = row;
+    dragging.classList.add('sortable-dragging');
+    placeholder = document.createElement('tr');
+    placeholder.className = 'sortable-placeholder';
+    // match row height
+    const cellCount = row.querySelectorAll('td').length;
+    placeholder.innerHTML = `<td colspan="${cellCount}" style="height:${row.offsetHeight}px;"></td>`;
+    row.parentNode.insertBefore(placeholder, row.nextSibling);
+  }
+
+  function moveDrag(clientY) {
+    if (!dragging) return;
+    const rows = [...tbody.querySelectorAll('tr:not(.sortable-dragging):not(.sortable-placeholder)')];
+    let insertBefore = null;
+    for (const r of rows) {
+      const rect = r.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) { insertBefore = r; break; }
+    }
+    if (insertBefore) tbody.insertBefore(placeholder, insertBefore);
+    else tbody.appendChild(placeholder);
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging.classList.remove('sortable-dragging');
+    tbody.insertBefore(dragging, placeholder);
+    placeholder.remove();
+    placeholder = null;
+    const ids = getOrderedIds();
+    dragging = null;
+    onReorder(ids);
+  }
+
+  // Mouse
+  tbody.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+    startDrag(handle.closest('tr'));
+    const onMove = ev => moveDrag(ev.clientY);
+    const onUp = () => { endDrag(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Touch (iPad)
+  tbody.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    startDrag(handle.closest('tr'));
+  }, { passive: true });
+
+  tbody.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    moveDrag(e.touches[0].clientY);
+  }, { passive: false });
+
+  tbody.addEventListener('touchend', endDrag);
+}
+
 function renderHargaKain() {
   const tbody = document.getElementById('tbody-harga-kain');
   const jenisKainList = getJenisKainList();
@@ -4519,7 +4609,8 @@ function renderHargaKain() {
   tbody.innerHTML = jenisKainList.map((j, idx) => {
     const produkPakai = (kainProdukMap[j.nama] || []).map(p => `<span style="font-size:11px;background:#e8f5e9;border-radius:3px;padding:1px 5px;margin:1px;">${p}</span>`).join(' ');
     const safeNama = j.nama.replace(/'/g, "\\'");
-    return `<tr>
+    return `<tr data-sort-id="${j.nama.replace(/"/g,'&quot;')}">
+      <td style="width:28px;"><span class="drag-handle" title="Seret untuk urutkan">⠿</span></td>
       <td><input type="text" id="kain-nama-${idx}" value="${j.nama}" style="width:180px;font-size:13px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;"></td>
       <td class="td-right">
         <input type="number" id="kain-harga-${idx}" value="${j.harga}" min="0" step="500"
@@ -4536,6 +4627,29 @@ function renderHargaKain() {
       </td>
     </tr>`;
   }).join('');
+
+  makeSortable(tbody, (newOrder) => {
+    // Baca nilai input saat ini sebelum re-render
+    const currentList = getJenisKainList();
+    const hargaMap = {};
+    currentList.forEach((j, idx) => {
+      const namaEl  = document.getElementById('kain-nama-' + idx);
+      const hargaEl = document.getElementById('kain-harga-' + idx);
+      const namaNow = namaEl ? namaEl.value.trim() : j.nama;
+      const hargaNow = hargaEl ? (parseFloat(hargaEl.value) || 0) : j.harga;
+      hargaMap[j.nama] = { nama: namaNow, harga: hargaNow };
+    });
+    // Terapkan urutan baru
+    db.jenisKainOrder = newOrder.map(id => (hargaMap[id] ? hargaMap[id].nama : id));
+    // Update hargaKain dengan nama/harga terkini
+    const newHargaKain = {};
+    db.jenisKainOrder.forEach(n => { if (n) newHargaKain[n] = hargaMap[Object.keys(hargaMap).find(k => hargaMap[k].nama === n)]?.harga ?? db.hargaKain[n] ?? 0; });
+    // Jaga jenis kain yang tidak ada di order (seharusnya tidak ada, tapi aman)
+    Object.keys(db.hargaKain || {}).forEach(k => { if (!newHargaKain[k]) newHargaKain[k] = db.hargaKain[k]; });
+    db.hargaKain = newHargaKain;
+    saveDB('shared');
+    renderHargaKain();
+  });
 }
 
 function tambahJenisKain() {
@@ -4632,6 +4746,7 @@ function saveHargaKain() {
 
   db.hargaKain = newHargaKain;
   db.produkKainMap = newProdukKainMap;
+  db.jenisKainOrder = Object.keys(newHargaKain);
 
   changes.forEach(c => {
     logRiwayatHarga({
@@ -6136,6 +6251,24 @@ function printLaporan(tipe) {
       table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
       @media print { body { padding: 12px; } }
+    </style>
+    <style>
+      .drag-handle {
+        cursor: grab;
+        color: #bbb;
+        font-size: 16px;
+        padding: 0 6px;
+        user-select: none;
+        touch-action: none;
+      }
+      .drag-handle:active { cursor: grabbing; }
+      .sortable-dragging { opacity: 0.45; }
+      .sortable-placeholder {
+        background: #e8f5e9 !important;
+        border-top: 2px dashed var(--green) !important;
+        border-bottom: 2px dashed var(--green) !important;
+      }
+      .sortable-placeholder td { visibility: hidden; }
     </style>
   </head><body>
     ${headerHtml}
