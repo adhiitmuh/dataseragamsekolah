@@ -478,10 +478,17 @@ body.dark .page-title { color: #E5E7EB; }
       </div>
       <div id="proposal-container"></div>
     </div>
-    <div class="filter-bar">
+    <div class="filter-bar" style="flex-wrap:wrap; gap:12px; align-items:center;">
       <select id="filter-produk-harga" onchange="renderHargaStandar()">
         <option value="">— Semua Produk —</option>
       </select>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#555;">
+        📈 Simulasi naik kain
+        <input type="number" id="sim-naik-harga" value="2000" min="0" step="500"
+          oninput="renderHargaStandar()"
+          style="width:90px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:13px; text-align:right;">
+        <span style="color:#888;">/yard</span>
+      </label>
     </div>
     <div id="container-harga-standar"></div>
   </div>
@@ -2926,6 +2933,7 @@ function renderHargaStandar() {
   const filter = document.getElementById('filter-produk-harga').value;
   const container = document.getElementById('container-harga-standar');
   const isAdmin = currentUserData && currentUserData.role === 'admin';
+  const simNaik = parseFloat(document.getElementById('sim-naik-harga')?.value) || 2000;
 
   // Show/hide pending proposals
   renderProposalHarga();
@@ -2946,7 +2954,7 @@ function renderHargaStandar() {
       const kainEfektif = getKainPcs(name, s.size);
       const untungOwner = hargaJual - modal;
       const marginPct = hargaJual > 0 ? (untungOwner / hargaJual * 100).toFixed(1) : '0.0';
-      const naik = Math.round((2000 * kainEfektif) + p.bahanPenjahit);
+      const naik = Math.round((simNaik * kainEfektif) + p.bahanPenjahit);
       const modalKain = Math.round(hargaKain * kainEfektif);
       const untungPenjahit = modal - modalKain - totalBahanTambahan;
       const ovrStar = '<span title="Override" style="color:#1565C0;font-size:9px;vertical-align:super;">★</span>';
@@ -2981,7 +2989,7 @@ function renderHargaStandar() {
           <th class="td-right">Untung Owner</th>
           <th class="td-right">Margin</th>
           <th class="td-right">Kain (yard)</th>
-          <th class="td-right">NAIK (kain+2rb)</th>
+          <th class="td-right">NAIK (kain+${rp(simNaik)})</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
