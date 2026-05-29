@@ -1682,10 +1682,10 @@ body.dark .page-title { color: #E5E7EB; }
 
 <!-- Modal: Edit/Tambah Produk -->
 <div class="modal-overlay" id="modal-produk">
-  <div class="modal" style="max-width:760px; width:95%;">
-    <div class="modal-title">📦 <span id="modal-produk-title">Tambah Produk</span></div>
+  <div class="modal" style="max-width:760px; width:95%; max-height:92vh; display:flex; flex-direction:column; overflow:hidden;">
+    <div class="modal-title" style="flex-shrink:0;">📦 <span id="modal-produk-title">Tambah Produk</span></div>
     <input type="hidden" id="produk-edit-nama-lama">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+    <div style="flex-shrink:0; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
       <div>
         <label class="form-label">Nama Produk *</label>
         <input type="text" id="produk-nama" class="form-control" placeholder="Celana Panjang SMP/SMA">
@@ -1710,11 +1710,11 @@ body.dark .page-title { color: #E5E7EB; }
         <input type="number" id="produk-bahan-penjahit" class="form-control" value="500" min="0" step="100">
       </div>
     </div>
-    <div style="font-weight:bold; margin-bottom:8px; font-size:13px;">📏 Daftar Ukuran</div>
-    <div style="overflow-x:auto;">
+    <div style="flex-shrink:0; font-weight:bold; margin-bottom:8px; font-size:13px;">📏 Daftar Ukuran</div>
+    <div style="flex:1; overflow-y:auto; overflow-x:auto; -webkit-overflow-scrolling:touch; min-height:120px;">
       <table style="width:100%; font-size:13px; border-collapse:collapse;" id="produk-sizes-table">
         <thead>
-          <tr style="background:var(--green-dark); color:white;">
+          <tr style="background:var(--green-dark); color:white; position:sticky; top:0; z-index:1;">
             <th style="padding:6px 10px; text-align:left;">Ukuran</th>
             <th style="padding:6px 10px; text-align:right;">Modal (Rp)</th>
             <th style="padding:6px 10px; text-align:right;">Harga Jual (Rp)</th>
@@ -1726,10 +1726,12 @@ body.dark .page-title { color: #E5E7EB; }
         <tbody id="produk-sizes-tbody"></tbody>
       </table>
     </div>
-    <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="addProdukSizeRow()">+ Tambah Ukuran</button>
-    <div class="modal-footer" style="margin-top:16px;">
-      <button class="btn btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
-      <button class="btn btn-primary" onclick="saveProdukModal()">💾 Simpan</button>
+    <div style="flex-shrink:0; padding-top:10px; border-top:1px solid var(--border); margin-top:8px;">
+      <button class="btn btn-outline btn-sm" onclick="addProdukSizeRow()">+ Tambah Ukuran</button>
+      <div class="modal-footer" style="margin-top:12px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
+        <button class="btn btn-primary" onclick="saveProdukModal()">💾 Simpan</button>
+      </div>
     </div>
   </div>
 </div>
