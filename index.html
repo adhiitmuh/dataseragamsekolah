@@ -3160,7 +3160,9 @@ auth.onAuthStateChanged(async (user) => {
     await loadFromFirestore();
     applyRoleUI(userData);
     initDropdowns();
-    renderDashboard();
+    const _validPages = ['dashboard','order','pengambilan','sesi','laporan','analisis','harga','produk','bahan','penjahit','riwayat','users','export'];
+    const _savedPage = window.location.hash.replace('#', '');
+    showPage((_savedPage && _validPages.includes(_savedPage)) ? _savedPage : 'dashboard');
     hideLoading();
   } else {
     currentUser = null;
@@ -3265,6 +3267,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
+  window.location.hash = name;
   refreshPage(name);
 }
 
