@@ -833,7 +833,7 @@ body.dark .page-title { color: #E5E7EB; }
       <!-- CELANA -->
       <div class="card">
         <div class="card-title">👖 Komponen Bahan — Celana</div>
-        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Celana Panjang Merah SD, Celana Pendek Merah SD, Celana Panjang SMP/SMA</div>
+        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Celana Panjang Merah SD, Celana Pendek Merah SD, Celana Panjang SMP, Celana Panjang SMA</div>
         <table style="width:100%;">
           <thead>
             <tr>
@@ -862,7 +862,7 @@ body.dark .page-title { color: #E5E7EB; }
       <!-- ROK SPAN -->
       <div class="card">
         <div class="card-title">👗 Komponen Bahan — Rok Span</div>
-        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Rok Span SMP/SMA</div>
+        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Rok Span SMP, Rok Span SMA</div>
         <table style="width:100%;">
           <thead>
             <tr>
@@ -891,7 +891,7 @@ body.dark .page-title { color: #E5E7EB; }
       <!-- ROK REMPEL -->
       <div class="card">
         <div class="card-title">👗 Komponen Bahan — Rok Rempel</div>
-        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Rok Rempel SMP/SMA, Rok Rempel SD Panjang, Rok Rempel SD Pendek</div>
+        <div style="font-size:12px; color:#666; margin-bottom:14px;">Berlaku untuk: Rok Rempel SMP, Rok Rempel SMA, Rok Rempel SD Panjang, Rok Rempel SD Pendek</div>
         <table style="width:100%;">
           <thead>
             <tr>
@@ -1948,7 +1948,7 @@ let PRODUK_DATA = {
       {size:'No. 22', modal:77000, hargaJual:108000, kain:1.38, kenaikJual:8000},
     ]
   },
-  'Rok Span SMP/SMA': {
+  'Rok Span SMP': {
     kategori: 'Rok',
     kainInfo: 'Kain Famatex Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -1968,7 +1968,47 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:65000, hargaJual:90000, kain:1.08, kenaikJual:5000},
     ]
   },
-  'Rok Rempel SMP/SMA': {
+  'Rok Span SMA': {
+    kategori: 'Rok',
+    kainInfo: 'Kain Famatex Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:54500, hargaJual:80000, kain:0.91, kenaikJual:5000},
+      {size:'No. 25', modal:54500, hargaJual:80000, kain:0.93, kenaikJual:5000},
+      {size:'No. 26', modal:54500, hargaJual:80000, kain:0.97, kenaikJual:5000},
+      {size:'No. 27', modal:56000, hargaJual:80000, kain:0.98, kenaikJual:5000},
+      {size:'No. 28', modal:56000, hargaJual:80000, kain:1.01, kenaikJual:5000},
+      {size:'No. 29', modal:56000, hargaJual:80000, kain:1.02, kenaikJual:5000},
+      {size:'No. 30', modal:56000, hargaJual:80000, kain:1.03, kenaikJual:5000},
+      {size:'No. 31', modal:58500, hargaJual:85000, kain:1.04, kenaikJual:5000},
+      {size:'No. 32', modal:58500, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 33', modal:58500, hargaJual:85000, kain:1.06, kenaikJual:5000},
+      {size:'No. 34', modal:64000, hargaJual:90000, kain:1.07, kenaikJual:5000},
+      {size:'No. 35', modal:64000, hargaJual:90000, kain:1.08, kenaikJual:5000},
+      {size:'No. 36', modal:65000, hargaJual:90000, kain:1.08, kenaikJual:5000},
+    ]
+  },
+  'Rok Rempel SMP': {
+    kategori: 'Rok',
+    kainInfo: 'Kain Famatex Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:56500, hargaJual:85000, kain:0.93, kenaikJual:5000},
+      {size:'No. 25', modal:56500, hargaJual:85000, kain:0.95, kenaikJual:5000},
+      {size:'No. 26', modal:56500, hargaJual:85000, kain:0.98, kenaikJual:5000},
+      {size:'No. 27', modal:58000, hargaJual:85000, kain:1.00, kenaikJual:5000},
+      {size:'No. 28', modal:58000, hargaJual:85000, kain:1.03, kenaikJual:5000},
+      {size:'No. 29', modal:58000, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 30', modal:60500, hargaJual:85000, kain:1.07, kenaikJual:5000},
+      {size:'No. 31', modal:60500, hargaJual:90000, kain:1.11, kenaikJual:5000},
+      {size:'No. 32', modal:60500, hargaJual:90000, kain:1.12, kenaikJual:5000},
+      {size:'No. 33', modal:64500, hargaJual:90000, kain:1.12, kenaikJual:5000},
+      {size:'No. 34', modal:64500, hargaJual:95000, kain:1.13, kenaikJual:10000},
+      {size:'No. 35', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
+      {size:'No. 36', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
+    ]
+  },
+  'Rok Rempel SMA': {
     kategori: 'Rok',
     kainInfo: 'Kain Famatex Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -2068,7 +2108,29 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:40500, hargaJual:75000, kain:0.60, kenaikJual:5000},
     ]
   },
-  'Celana Panjang SMP/SMA': {
+  'Celana Panjang SMP': {
+    kategori: 'Celana',
+    kainInfo: 'Kain Famatex Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:58000, hargaJual:85000, kain:0.96, kenaikJual:5000},
+      {size:'No. 25', modal:58000, hargaJual:85000, kain:0.98, kenaikJual:5000},
+      {size:'No. 26', modal:58000, hargaJual:85000, kain:1.01, kenaikJual:5000},
+      {size:'No. 27', modal:62000, hargaJual:85000, kain:1.03, kenaikJual:5000},
+      {size:'No. 28', modal:62000, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 29', modal:62000, hargaJual:85000, kain:1.07, kenaikJual:5000},
+      {size:'No. 30', modal:62000, hargaJual:85000, kain:1.08, kenaikJual:5000},
+      {size:'No. 31', modal:66000, hargaJual:90000, kain:1.09, kenaikJual:5000},
+      {size:'No. 32', modal:66000, hargaJual:90000, kain:1.10, kenaikJual:5000},
+      {size:'No. 33', modal:66000, hargaJual:90000, kain:1.11, kenaikJual:5000},
+      {size:'No. 34', modal:71000, hargaJual:95000, kain:1.12, kenaikJual:5000},
+      {size:'No. 35', modal:71000, hargaJual:95000, kain:1.13, kenaikJual:5000},
+      {size:'No. 36', modal:71000, hargaJual:95000, kain:1.14, kenaikJual:5000},
+      {size:'No. 37', modal:75000, hargaJual:100000, kain:1.16, kenaikJual:5000},
+      {size:'No. 38', modal:78000, hargaJual:100000, kain:1.18, kenaikJual:5000},
+    ]
+  },
+  'Celana Panjang SMA': {
     kategori: 'Celana',
     kainInfo: 'Kain Famatex Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -2170,7 +2232,7 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:40500, hargaJual:75000, kain:0.60, kenaikJual:5000},
     ]
   },
-  'Rok Span Pramuka SMP/SMA': {
+  'Rok Span Pramuka SMP': {
     kategori: 'Rok',
     kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -2190,7 +2252,27 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:65000, hargaJual:90000, kain:1.08, kenaikJual:5000},
     ]
   },
-  'Rok Rempel Pramuka SMP/SMA': {
+  'Rok Span Pramuka SMA': {
+    kategori: 'Rok',
+    kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:54500, hargaJual:80000, kain:0.91, kenaikJual:5000},
+      {size:'No. 25', modal:54500, hargaJual:80000, kain:0.93, kenaikJual:5000},
+      {size:'No. 26', modal:54500, hargaJual:80000, kain:0.97, kenaikJual:5000},
+      {size:'No. 27', modal:56000, hargaJual:80000, kain:0.98, kenaikJual:5000},
+      {size:'No. 28', modal:56000, hargaJual:80000, kain:1.01, kenaikJual:5000},
+      {size:'No. 29', modal:56000, hargaJual:80000, kain:1.02, kenaikJual:5000},
+      {size:'No. 30', modal:56000, hargaJual:80000, kain:1.03, kenaikJual:5000},
+      {size:'No. 31', modal:58500, hargaJual:85000, kain:1.04, kenaikJual:5000},
+      {size:'No. 32', modal:58500, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 33', modal:58500, hargaJual:85000, kain:1.06, kenaikJual:5000},
+      {size:'No. 34', modal:64000, hargaJual:90000, kain:1.07, kenaikJual:5000},
+      {size:'No. 35', modal:64000, hargaJual:90000, kain:1.08, kenaikJual:5000},
+      {size:'No. 36', modal:65000, hargaJual:90000, kain:1.08, kenaikJual:5000},
+    ]
+  },
+  'Rok Rempel Pramuka SMP': {
     kategori: 'Rok',
     kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -2210,7 +2292,49 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
     ]
   },
-  'Celana Panjang Pramuka SMP/SMA': {
+  'Rok Rempel Pramuka SMA': {
+    kategori: 'Rok',
+    kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:56500, hargaJual:85000, kain:0.93, kenaikJual:5000},
+      {size:'No. 25', modal:56500, hargaJual:85000, kain:0.95, kenaikJual:5000},
+      {size:'No. 26', modal:56500, hargaJual:85000, kain:0.98, kenaikJual:5000},
+      {size:'No. 27', modal:58000, hargaJual:85000, kain:1.00, kenaikJual:5000},
+      {size:'No. 28', modal:58000, hargaJual:85000, kain:1.03, kenaikJual:5000},
+      {size:'No. 29', modal:58000, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 30', modal:60500, hargaJual:85000, kain:1.07, kenaikJual:5000},
+      {size:'No. 31', modal:60500, hargaJual:90000, kain:1.11, kenaikJual:5000},
+      {size:'No. 32', modal:60500, hargaJual:90000, kain:1.12, kenaikJual:5000},
+      {size:'No. 33', modal:64500, hargaJual:90000, kain:1.12, kenaikJual:5000},
+      {size:'No. 34', modal:64500, hargaJual:95000, kain:1.13, kenaikJual:10000},
+      {size:'No. 35', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
+      {size:'No. 36', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
+    ]
+  },
+  'Celana Panjang Pramuka SMP': {
+    kategori: 'Celana',
+    kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:58000, hargaJual:85000, kain:0.96, kenaikJual:5000},
+      {size:'No. 25', modal:58000, hargaJual:85000, kain:0.98, kenaikJual:5000},
+      {size:'No. 26', modal:58000, hargaJual:85000, kain:1.01, kenaikJual:5000},
+      {size:'No. 27', modal:62000, hargaJual:85000, kain:1.03, kenaikJual:5000},
+      {size:'No. 28', modal:62000, hargaJual:85000, kain:1.05, kenaikJual:5000},
+      {size:'No. 29', modal:62000, hargaJual:85000, kain:1.07, kenaikJual:5000},
+      {size:'No. 30', modal:62000, hargaJual:85000, kain:1.08, kenaikJual:5000},
+      {size:'No. 31', modal:66000, hargaJual:90000, kain:1.09, kenaikJual:5000},
+      {size:'No. 32', modal:66000, hargaJual:90000, kain:1.10, kenaikJual:5000},
+      {size:'No. 33', modal:66000, hargaJual:90000, kain:1.11, kenaikJual:5000},
+      {size:'No. 34', modal:71000, hargaJual:95000, kain:1.12, kenaikJual:5000},
+      {size:'No. 35', modal:71000, hargaJual:95000, kain:1.13, kenaikJual:5000},
+      {size:'No. 36', modal:71000, hargaJual:95000, kain:1.14, kenaikJual:5000},
+      {size:'No. 37', modal:75000, hargaJual:100000, kain:1.16, kenaikJual:5000},
+      {size:'No. 38', modal:78000, hargaJual:100000, kain:1.18, kenaikJual:5000},
+    ]
+  },
+  'Celana Panjang Pramuka SMA': {
     kategori: 'Celana',
     kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
     bahanPenjahit: 500,
@@ -2282,20 +2406,26 @@ const PRODUK_KAIN_MAP_DEFAULT = {
   'Baju Putih Lengan Panjang SMA': 'Kain Putih',
   'Baju Pramuka Lengan Pendek':  'Kain Pramuka',
   'Baju Pramuka Lengan Panjang': 'Kain Pramuka',
-  'Rok Span SMP/SMA':          'Kain Span',
-  'Rok Rempel SMP/SMA':        'Kain Rempel',
+  'Rok Span SMP':              'Kain Span',
+  'Rok Span SMA':              'Kain Span',
+  'Rok Rempel SMP':            'Kain Rempel',
+  'Rok Rempel SMA':            'Kain Rempel',
   'Rok Rempel SD Panjang':     'Kain Rempel',
   'Rok Rempel SD Pendek':      'Kain Rempel',
   'Celana Panjang Merah SD':   'Kain Merah SD',
   'Celana Pendek Merah SD':    'Kain Merah SD',
-  'Celana Panjang SMP/SMA':         'Kain Celana SMP/SMA',
+  'Celana Panjang SMP':             'Kain Celana SMP/SMA',
+  'Celana Panjang SMA':             'Kain Celana SMP/SMA',
   'Rok Panjang Pramuka SD':         'Famatex Pramuka Bawahan',
   'Rok Pendek Pramuka SD':          'Famatex Pramuka Bawahan',
   'Celana Panjang Pramuka SD':      'Famatex Pramuka Bawahan',
   'Celana Pendek Pramuka SD':       'Famatex Pramuka Bawahan',
-  'Rok Span Pramuka SMP/SMA':       'Famatex Pramuka Bawahan',
-  'Rok Rempel Pramuka SMP/SMA':     'Famatex Pramuka Bawahan',
-  'Celana Panjang Pramuka SMP/SMA': 'Famatex Pramuka Bawahan',
+  'Rok Span Pramuka SMP':           'Famatex Pramuka Bawahan',
+  'Rok Span Pramuka SMA':           'Famatex Pramuka Bawahan',
+  'Rok Rempel Pramuka SMP':         'Famatex Pramuka Bawahan',
+  'Rok Rempel Pramuka SMA':         'Famatex Pramuka Bawahan',
+  'Celana Panjang Pramuka SMP':     'Famatex Pramuka Bawahan',
+  'Celana Panjang Pramuka SMA':     'Famatex Pramuka Bawahan',
   'Rompi SD':                       'Kain Rompi',
 };
 
@@ -2304,14 +2434,14 @@ const HARGA_KAIN_DEFAULT = {
   'Baju Putih Lengan Pendek SD': 25000, 'Baju Putih Lengan Pendek SMP': 25000, 'Baju Putih Lengan Pendek SMA': 25000,
   'Baju Putih Lengan Panjang SD': 25000, 'Baju Putih Lengan Panjang SMP': 25000, 'Baju Putih Lengan Panjang SMA': 25000,
   'Baju Pramuka Lengan Pendek': 38000, 'Baju Pramuka Lengan Panjang': 38000,
-  'Rok Span SMP/SMA': 38000, 'Rok Rempel SMP/SMA': 38000,
+  'Rok Span SMP': 38000, 'Rok Span SMA': 38000, 'Rok Rempel SMP': 38000, 'Rok Rempel SMA': 38000,
   'Rok Rempel SD Panjang': 38000, 'Rok Rempel SD Pendek': 38000,
   'Celana Panjang Merah SD': 38000, 'Celana Pendek Merah SD': 38000,
-  'Celana Panjang SMP/SMA': 38000,
+  'Celana Panjang SMP': 38000, 'Celana Panjang SMA': 38000,
   'Rok Panjang Pramuka SD': 38000, 'Rok Pendek Pramuka SD': 38000,
   'Celana Panjang Pramuka SD': 38000, 'Celana Pendek Pramuka SD': 38000,
-  'Rok Span Pramuka SMP/SMA': 38000, 'Rok Rempel Pramuka SMP/SMA': 38000,
-  'Celana Panjang Pramuka SMP/SMA': 38000,
+  'Rok Span Pramuka SMP': 38000, 'Rok Span Pramuka SMA': 38000, 'Rok Rempel Pramuka SMP': 38000, 'Rok Rempel Pramuka SMA': 38000,
+  'Celana Panjang Pramuka SMP': 38000, 'Celana Panjang Pramuka SMA': 38000,
   'Rompi SD': 38000,
 };
 
@@ -2380,17 +2510,32 @@ const HARGA_JUAL_HI_DEFAULT = {
     'No. 28':70000,'No. 29':70000,'No. 30':75000,
     'No. 31':75000,'No. 32':75000,'No. 33':75000,'No. 34':75000,'No. 35':80000,'No. 36':80000,
   },
-  'Rok Span SMP/SMA': {
+  'Rok Span SMP': {
     'No. 25':95000,'No. 26':97000,'No. 27':97000,'No. 28':99000,'No. 29':99000,
     'No. 30':101000,'No. 31':101000,'No. 32':103000,'No. 33':103000,
     'No. 34':110000,'No. 35':110000,'No. 36':115000,
   },
-  'Rok Rempel SMP/SMA': {
+  'Rok Span SMA': {
+    'No. 25':95000,'No. 26':97000,'No. 27':97000,'No. 28':99000,'No. 29':99000,
+    'No. 30':101000,'No. 31':101000,'No. 32':103000,'No. 33':103000,
+    'No. 34':110000,'No. 35':110000,'No. 36':115000,
+  },
+  'Rok Rempel SMP': {
     'No. 26':95000,'No. 27':95000,'No. 28':95000,'No. 29':95000,'No. 30':95000,
     'No. 31':95000,'No. 32':95000,'No. 33':95000,'No. 34':95000,
     'No. 35':105000,'No. 36':105000,
   },
-  'Celana Panjang SMP/SMA': {
+  'Rok Rempel SMA': {
+    'No. 26':95000,'No. 27':95000,'No. 28':95000,'No. 29':95000,'No. 30':95000,
+    'No. 31':95000,'No. 32':95000,'No. 33':95000,'No. 34':95000,
+    'No. 35':105000,'No. 36':105000,
+  },
+  'Celana Panjang SMP': {
+    'No. 25':97000,'No. 26':102000,'No. 27':104000,'No. 28':104000,
+    'No. 29':106000,'No. 30':106000,'No. 31':108000,'No. 32':108000,
+    'No. 33':110000,'No. 34':110000,'No. 35':115000,'No. 36':120000,
+  },
+  'Celana Panjang SMA': {
     'No. 25':97000,'No. 26':102000,'No. 27':104000,'No. 28':104000,
     'No. 29':106000,'No. 30':106000,'No. 31':108000,'No. 32':108000,
     'No. 33':110000,'No. 34':110000,'No. 35':115000,'No. 36':120000,
@@ -2400,7 +2545,14 @@ const HARGA_JUAL_HI_DEFAULT = {
 
 // Modal Pak Sukri khusus Harmoni Indonesia
 const HARGA_MODAL_HI_PAKSU = {
-  'Celana Panjang SMP/SMA': {
+  'Celana Panjang SMP': {
+    'No. 25':61500,'No. 26':61500,
+    'No. 27':64500,'No. 28':64500,'No. 29':64500,'No. 30':64500,
+    'No. 31':71500,'No. 32':71500,'No. 33':71500,
+    'No. 34':78500,'No. 35':78500,'No. 36':80000,
+    'No. 37':90000,'No. 38':90000,
+  },
+  'Celana Panjang SMA': {
     'No. 25':61500,'No. 26':61500,
     'No. 27':64500,'No. 28':64500,'No. 29':64500,'No. 30':64500,
     'No. 31':71500,'No. 32':71500,'No. 33':71500,
@@ -2456,20 +2608,26 @@ const KATEGORI_BAHAN = {
   'Baju Putih Lengan Panjang SMA': 'baju',
   'Baju Pramuka Lengan Pendek': 'baju',
   'Baju Pramuka Lengan Panjang': 'baju',
-  'Rok Span SMP/SMA': 'rok_span',
-  'Rok Rempel SMP/SMA': 'rok_rempel',
+  'Rok Span SMP': 'rok_span',
+  'Rok Span SMA': 'rok_span',
+  'Rok Rempel SMP': 'rok_rempel',
+  'Rok Rempel SMA': 'rok_rempel',
   'Rok Rempel SD Panjang': 'rok_rempel',
   'Rok Rempel SD Pendek': 'rok_rempel',
   'Celana Panjang Merah SD': 'celana',
   'Celana Pendek Merah SD': 'celana',
-  'Celana Panjang SMP/SMA': 'celana',
+  'Celana Panjang SMP': 'celana',
+  'Celana Panjang SMA': 'celana',
   'Rok Panjang Pramuka SD': 'rok_rempel',
   'Rok Pendek Pramuka SD': 'rok_rempel',
   'Celana Panjang Pramuka SD': 'celana',
   'Celana Pendek Pramuka SD': 'celana',
-  'Rok Span Pramuka SMP/SMA': 'rok_span',
-  'Rok Rempel Pramuka SMP/SMA': 'rok_rempel',
-  'Celana Panjang Pramuka SMP/SMA': 'celana',
+  'Rok Span Pramuka SMP': 'rok_span',
+  'Rok Span Pramuka SMA': 'rok_span',
+  'Rok Rempel Pramuka SMP': 'rok_rempel',
+  'Rok Rempel Pramuka SMA': 'rok_rempel',
+  'Celana Panjang Pramuka SMP': 'celana',
+  'Celana Panjang Pramuka SMA': 'celana',
   'Rompi SD': 'rompi',
 };
 
@@ -2511,10 +2669,10 @@ const TOLERANSI_PERSEN = 10; // Default toleransi 10%
 // =============================================
 // Produk default per penjahit (untuk migrasi & default baru)
 const PENJAHIT_PRODUK_DEFAULTS = {
-  'Idul':     ['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP/SMA'],
-  'Juhaeriah':['Rok Span SMP/SMA','Rok Rempel SMP/SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
+  'Idul':     ['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP','Celana Panjang SMA'],
+  'Juhaeriah':['Rok Span SMP','Rok Span SMA','Rok Rempel SMP','Rok Rempel SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
   'Nur Alam': ['Baju Pramuka Lengan Pendek','Baju Pramuka Lengan Panjang','Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
-  'Pak Sukri':['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP/SMA','Rok Span SMP/SMA','Rok Rempel SMP/SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
+  'Pak Sukri':['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP','Celana Panjang SMA','Rok Span SMP','Rok Span SMA','Rok Rempel SMP','Rok Rempel SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
   'Vina':     ['Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
   'Yuliani':  ['Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
 };
