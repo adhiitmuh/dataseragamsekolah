@@ -2363,6 +2363,14 @@ async function loadFromFirestore() {
       if (!db.hargaJualOverride || !Object.keys(db.hargaJualOverride).length) {
         db.hargaJualOverride = JSON.parse(JSON.stringify(HARGA_JUAL_HI_DEFAULT));
         needsConfigSave = true;
+      } else {
+        // Merge produk baru yang belum ada di override (misal ditambahkan setelah toko diinisialisasi)
+        Object.entries(HARGA_JUAL_HI_DEFAULT).forEach(([produk, sizes]) => {
+          if (!db.hargaJualOverride[produk]) {
+            db.hargaJualOverride[produk] = JSON.parse(JSON.stringify(sizes));
+            needsConfigSave = true;
+          }
+        });
       }
       if (!db.hargaModalOverride || !Object.keys(db.hargaModalOverride).length) {
         db.hargaModalOverride = {};
@@ -2370,6 +2378,14 @@ async function loadFromFirestore() {
           db.hargaModalOverride[produk] = {...sizes};
         });
         needsConfigSave = true;
+      } else {
+        // Merge produk baru yang belum ada di modal override
+        Object.entries(HARGA_MODAL_HI_PAKSU).forEach(([produk, sizes]) => {
+          if (!db.hargaModalOverride[produk]) {
+            db.hargaModalOverride[produk] = {...sizes};
+            needsConfigSave = true;
+          }
+        });
       }
       if (needsConfigSave) saveDB('config');
     }
