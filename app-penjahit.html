@@ -2228,6 +2228,7 @@ let db = {
   produkKainMap: null,   // { 'Baju Putih LP': 'Kain Putih', ... }
   hargaModalOverride: {},  // per toko — override modal standar
   hargaJualOverride: {},   // per toko — override harga jual
+  hargaCustomPenjahit: {}, // per toko — modal custom per penjahit { penjahitId: { produk: { ukuran: harga } } }
   kainOverride: {},        // global — override penggunaan kain per produk/ukuran
 };
 
@@ -2292,6 +2293,7 @@ function migrateDBFields() {
   });
   if (!db.hargaModalOverride) db.hargaModalOverride = {};
   if (!db.hargaJualOverride)  db.hargaJualOverride = {};
+  if (!db.hargaCustomPenjahit) db.hargaCustomPenjahit = {};
   if (!db.kainOverride)       db.kainOverride = {};
   db.penjahit.forEach(p => {
     if (!p.produkList || p.produkList.length === 0)
@@ -2347,19 +2349,37 @@ async function loadFromFirestore() {
       db.nextSesiId = 1; db.nextSetoranId = 1; db.nextRiwayatId = 1;
     }
 
-    // 3. Load toko config (harga override)
+    // 3. Load toko config (harga override + modal custom per penjahit)
+    // Simpan hargaCustom lama (format shared/penjahit) untuk migrasi sekali jalan ke per-toko
+    const legacyHargaCustom = {};
+    db.penjahit.forEach(p => {
+      if (p.hargaCustom && Object.keys(p.hargaCustom).length) {
+        legacyHargaCustom[p.id] = JSON.parse(JSON.stringify(p.hargaCustom));
+      }
+    });
     const tokoConfigDoc = await firestore.collection('toko').doc(currentToko).collection('main').doc('config').get();
+    let needsConfigSave = false;
     if (tokoConfigDoc.exists) {
       const c = tokoConfigDoc.data();
       db.hargaModalOverride = c.hargaModalOverride || {};
       db.hargaJualOverride  = c.hargaJualOverride  || {};
+      if (c.hargaCustomPenjahit) {
+        db.hargaCustomPenjahit = c.hargaCustomPenjahit;
+      } else {
+        // MIGRASI: toko belum punya modal custom per-toko — ambil dari hargaCustom lama (shared)
+        db.hargaCustomPenjahit = JSON.parse(JSON.stringify(legacyHargaCustom));
+        if (Object.keys(legacyHargaCustom).length) needsConfigSave = true;
+      }
     } else {
-      db.hargaModalOverride = {};
-      db.hargaJualOverride  = {};
+      db.hargaModalOverride  = {};
+      db.hargaJualOverride   = {};
+      db.hargaCustomPenjahit = JSON.parse(JSON.stringify(legacyHargaCustom));
+      if (Object.keys(legacyHargaCustom).length) needsConfigSave = true;
     }
+
     // Seed Harmoni Indonesia defaults kalau belum ada (first run per toko)
     if (currentToko === 'harmoni_indonesia') {
-      let needsConfigSave = false;
+      // Harga jual HI — override standar
       if (!db.hargaJualOverride || !Object.keys(db.hargaJualOverride).length) {
         db.hargaJualOverride = JSON.parse(JSON.stringify(HARGA_JUAL_HI_DEFAULT));
         needsConfigSave = true;
@@ -2372,23 +2392,36 @@ async function loadFromFirestore() {
           }
         });
       }
-      if (!db.hargaModalOverride || !Object.keys(db.hargaModalOverride).length) {
-        db.hargaModalOverride = {};
+      // Modal Pak Sukri = harga custom penjahit Pak Sukri (BUKAN override level toko).
+      // HS hanya pakai modal Idul (PRODUK_DATA); HI bisa pakai Idul (standar) atau Pak Sukri (custom).
+      const paksu = db.penjahit.find(x => x.nama === 'Pak Sukri');
+      if (paksu) {
+        if (!db.hargaCustomPenjahit[paksu.id]) db.hargaCustomPenjahit[paksu.id] = {};
         Object.entries(HARGA_MODAL_HI_PAKSU).forEach(([produk, sizes]) => {
-          db.hargaModalOverride[produk] = {...sizes};
-        });
-        needsConfigSave = true;
-      } else {
-        // Merge produk baru yang belum ada di modal override
-        Object.entries(HARGA_MODAL_HI_PAKSU).forEach(([produk, sizes]) => {
-          if (!db.hargaModalOverride[produk]) {
-            db.hargaModalOverride[produk] = {...sizes};
+          if (!db.hargaCustomPenjahit[paksu.id][produk]) {
+            db.hargaCustomPenjahit[paksu.id][produk] = {...sizes};
             needsConfigSave = true;
           }
         });
       }
-      if (needsConfigSave) saveDB('config');
+      // MIGRASI: buang modal Pak Sukri yang dulu salah ditaruh di level toko,
+      // supaya modal standar HI kembali = modal Idul untuk produk-produk tsb.
+      Object.keys(HARGA_MODAL_HI_PAKSU).forEach(produk => {
+        if (db.hargaModalOverride[produk]) {
+          delete db.hargaModalOverride[produk];
+          needsConfigSave = true;
+        }
+      });
     }
+
+    // Terapkan modal custom per-toko ke objek penjahit di memori
+    db.penjahit.forEach(p => {
+      p.hargaCustom = db.hargaCustomPenjahit[p.id]
+        ? JSON.parse(JSON.stringify(db.hargaCustomPenjahit[p.id]))
+        : {};
+    });
+
+    if (needsConfigSave) saveDB('config');
 
     migrateDBFields();
     hideLoading();
@@ -2404,7 +2437,8 @@ async function _saveDBAsync(section) {
   try {
     if (section === 'shared' || section === 'all') {
       await firestore.collection('shared').doc('config').set({
-        penjahit:       db.penjahit,
+        // hargaCustom kini per-toko (disimpan di config toko), jangan ikut tersimpan di shared
+        penjahit:       db.penjahit.map(p => { const { hargaCustom, ...rest } = p; return rest; }),
         bahan:          db.bahan,
         hargaKain:      db.hargaKain,
         produkKainMap:  db.produkKainMap,
@@ -2432,8 +2466,9 @@ async function _saveDBAsync(section) {
     }
     if (section === 'config') {
       await firestore.collection('toko').doc(currentToko).collection('main').doc('config').set({
-        hargaModalOverride: db.hargaModalOverride,
-        hargaJualOverride:  db.hargaJualOverride,
+        hargaModalOverride:  db.hargaModalOverride,
+        hargaJualOverride:   db.hargaJualOverride,
+        hargaCustomPenjahit: db.hargaCustomPenjahit,
       });
     }
   } catch(err) {
@@ -2873,6 +2908,10 @@ function konfirmHapusPenjahit(id) {
   document.getElementById('btn-konfirm-hapus').onclick = () => {
     db.penjahit = db.penjahit.filter(p => p.id != id);
     db.orders = db.orders.filter(o => o.penjahitId != id);
+    if (db.hargaCustomPenjahit && db.hargaCustomPenjahit[id]) {
+      delete db.hargaCustomPenjahit[id];
+      saveDB('config');
+    }
     saveDB('all');
     closeModal('modal-hapus');
     renderPenjahit();
@@ -5329,7 +5368,11 @@ function saveHargaCustom() {
     });
   });
 
-  saveDB('shared');
+  // Sinkronkan ke modal custom per-toko (disimpan di config toko, bukan shared)
+  if (!db.hargaCustomPenjahit) db.hargaCustomPenjahit = {};
+  db.hargaCustomPenjahit[p.id] = JSON.parse(JSON.stringify(p.hargaCustom));
+
+  saveDB('config');
   closeModal('modal-harga-custom');
   renderPenjahit();
 }
