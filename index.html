@@ -2852,6 +2852,31 @@ async function loadFromFirestore() {
       db.nextPenjahitId = 7;
     }
 
+    // Migrasi produkData lama: split "SMP/SMA" & baju putih generik
+    if (db.produkData) {
+      let produkMigrated = false;
+      Object.keys(db.produkData).forEach(name => {
+        if (name.includes('SMP/SMA')) {
+          const data = JSON.parse(JSON.stringify(db.produkData[name]));
+          const smp = name.replace('SMP/SMA', 'SMP');
+          const sma = name.replace('SMP/SMA', 'SMA');
+          if (!db.produkData[smp]) db.produkData[smp] = data;
+          if (!db.produkData[sma]) db.produkData[sma] = JSON.parse(JSON.stringify(data));
+          delete db.produkData[name];
+          produkMigrated = true;
+        }
+        if (name === 'Baju Putih Lengan Pendek' || name === 'Baju Putih Lengan Panjang') {
+          const data = JSON.parse(JSON.stringify(db.produkData[name]));
+          ['SD','SMP','SMA'].forEach(lvl => {
+            if (!db.produkData[name + ' ' + lvl]) db.produkData[name + ' ' + lvl] = JSON.parse(JSON.stringify(data));
+          });
+          delete db.produkData[name];
+          produkMigrated = true;
+        }
+      });
+      if (produkMigrated) needsConfigSave = true;
+    }
+
     // Sync PRODUK_DATA from Firestore if available
     if (db.produkData && Object.keys(db.produkData).length) {
       PRODUK_DATA = db.produkData;
