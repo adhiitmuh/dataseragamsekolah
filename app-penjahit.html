@@ -2874,7 +2874,7 @@ async function loadFromFirestore() {
           produkMigrated = true;
         }
       });
-      if (produkMigrated) needsConfigSave = true;
+      if (produkMigrated) saveDB('shared');
     }
 
     // Sync PRODUK_DATA from Firestore if available
