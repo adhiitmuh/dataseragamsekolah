@@ -6813,6 +6813,7 @@ function renderMasterProduk() {
   const container = document.getElementById('container-produk-list');
   if (!container) return;
   const names = PRODUK_NAMES;
+  const isAdmin = currentUserData?.role === 'admin';
   if (!names.length) {
     container.innerHTML = '<div class="alert alert-info">Belum ada produk. Klik "+ Tambah Produk" untuk mulai.</div>';
     return;
@@ -6821,16 +6822,20 @@ function renderMasterProduk() {
     const p = PRODUK_DATA[name];
     if (!p) return '';
     const kat = KATEGORI_BAHAN[name] || '—';
-    return `<div class="card" style="margin-bottom:12px;">
+    const safeName = name.replace(/'/g, "\\'");
+    return `<div class="card" data-sort-id="${name.replace(/"/g,'&quot;')}" style="margin-bottom:12px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <div>
-          <strong style="font-size:15px;">${name}</strong>
-          <span class="badge badge-gray" style="margin-left:8px; font-size:11px;">${p.sizes.length} ukuran</span>
-          ${kat !== '—' ? `<span class="badge badge-green" style="margin-left:4px; font-size:11px;">${kat}</span>` : ''}
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${isAdmin ? '<span class="drag-handle" title="Drag untuk atur urutan" style="cursor:grab; font-size:20px; color:#bbb; user-select:none; line-height:1;">⠿</span>' : ''}
+          <div>
+            <strong style="font-size:15px;">${name}</strong>
+            <span class="badge badge-gray" style="margin-left:8px; font-size:11px;">${p.sizes.length} ukuran</span>
+            ${kat !== '—' ? `<span class="badge badge-green" style="margin-left:4px; font-size:11px;">${kat}</span>` : ''}
+          </div>
         </div>
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="openModalProduk('${name.replace(/'/g,"\\'")}')">✏️ Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="konfirmHapusProduk('${name.replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn btn-primary btn-sm" onclick="openModalProduk('${safeName}')">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="konfirmHapusProduk('${safeName}')">🗑️</button>
         </div>
       </div>
       <div style="font-size:12px; color:#666; margin-top:6px;">📌 ${p.kainInfo || '—'} &nbsp;|&nbsp; Bahan penjahit: Rp ${(p.bahanPenjahit||0).toLocaleString('id')}</div>
@@ -6852,6 +6857,76 @@ function renderMasterProduk() {
       </div>
     </div>`;
   }).join('');
+
+  if (isAdmin && !container._sortableProduk) {
+    container._sortableProduk = true;
+    makeSortableDiv(container, (newOrder) => {
+      const filtered = newOrder.filter(Boolean);
+      PRODUK_NAMES.length = 0;
+      filtered.forEach(n => PRODUK_NAMES.push(n));
+      db.produkData = JSON.parse(JSON.stringify(PRODUK_DATA));
+      saveDB('shared');
+    });
+  }
+}
+
+function makeSortableDiv(container, onReorder) {
+  let dragging = null, placeholder = null;
+
+  function getOrderedIds() {
+    return [...container.querySelectorAll('[data-sort-id]:not(.sortable-placeholder)')].map(el => el.dataset.sortId);
+  }
+  function startDrag(card) {
+    dragging = card;
+    dragging.style.opacity = '0.4';
+    placeholder = document.createElement('div');
+    placeholder.className = 'sortable-placeholder';
+    placeholder.style.cssText = `height:${card.offsetHeight}px;border:2px dashed #ccc;border-radius:8px;margin-bottom:12px;background:#f8f8f8;`;
+    card.parentNode.insertBefore(placeholder, card.nextSibling);
+  }
+  function moveDrag(clientY) {
+    if (!dragging) return;
+    const cards = [...container.querySelectorAll('[data-sort-id]:not(.sortable-placeholder)')].filter(c => c !== dragging);
+    let insertBefore = null;
+    for (const c of cards) {
+      const rect = c.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) { insertBefore = c; break; }
+    }
+    if (insertBefore) container.insertBefore(placeholder, insertBefore);
+    else container.appendChild(placeholder);
+  }
+  function endDrag() {
+    if (!dragging) return;
+    dragging.style.opacity = '';
+    container.insertBefore(dragging, placeholder);
+    placeholder.remove();
+    placeholder = null;
+    const ids = getOrderedIds();
+    dragging = null;
+    onReorder(ids);
+  }
+
+  container.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+    startDrag(handle.closest('[data-sort-id]'));
+    const onMove = ev => moveDrag(ev.clientY);
+    const onUp = () => { endDrag(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  container.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    startDrag(handle.closest('[data-sort-id]'));
+  }, { passive: true });
+  container.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    moveDrag(e.touches[0].clientY);
+  }, { passive: false });
+  container.addEventListener('touchend', endDrag);
 }
 
 function openModalProduk(namaLama) {
