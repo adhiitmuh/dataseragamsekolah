@@ -2098,8 +2098,11 @@ function getJenisKainList() {
   if (!db.hargaKain) return JENIS_KAIN_DEFAULT;
   const entries = Object.entries(db.hargaKain).map(([nama, harga]) => ({ nama, harga }));
   if (db.jenisKainOrder && db.jenisKainOrder.length) {
-    const ordered = db.jenisKainOrder.filter(n => db.hargaKain[n] !== undefined).map(n => ({ nama: n, harga: db.hargaKain[n] }));
-    const extra = entries.filter(e => !db.jenisKainOrder.includes(e.nama));
+    const seen = new Set();
+    const ordered = db.jenisKainOrder
+      .filter(n => db.hargaKain[n] !== undefined && !seen.has(n) && seen.add(n))
+      .map(n => ({ nama: n, harga: db.hargaKain[n] }));
+    const extra = entries.filter(e => !seen.has(e.nama));
     return [...ordered, ...extra];
   }
   return entries;
@@ -2439,6 +2442,20 @@ async function loadFromFirestore() {
     });
 
     if (needsConfigSave) saveDB('config');
+
+    // Auto-restore kain default yang hilang & bersihkan jenisKainOrder duplikat
+    if (db.hargaKain) {
+      let kainRestored = false;
+      JENIS_KAIN_DEFAULT.forEach(({nama, harga}) => {
+        if (!(nama in db.hargaKain)) { db.hargaKain[nama] = harga; kainRestored = true; }
+      });
+      if (db.jenisKainOrder) {
+        const seen = new Set();
+        const cleaned = db.jenisKainOrder.filter(n => n && db.hargaKain[n] !== undefined && !seen.has(n) && seen.add(n));
+        if (cleaned.length !== db.jenisKainOrder.length) { db.jenisKainOrder = cleaned; kainRestored = true; }
+      }
+      if (kainRestored) saveDB('shared');
+    }
 
     migrateDBFields();
     hideLoading();
@@ -2853,11 +2870,14 @@ function renderPenjahit() {
     </tr>`;
   }).join('');
 
-  makeSortable(tbody, (newOrder) => {
-    db.penjahit = newOrder.map(id => db.penjahit.find(p => String(p.id) === String(id))).filter(Boolean);
-    saveDB('shared');
-    renderPenjahit();
-  });
+  if (!tbody._sortablePenjahit) {
+    tbody._sortablePenjahit = true;
+    makeSortable(tbody, (newOrder) => {
+      db.penjahit = newOrder.map(id => db.penjahit.find(p => String(p.id) === String(id))).filter(Boolean);
+      saveDB('shared');
+      renderPenjahit();
+    });
+  }
 }
 
 function buildProdukCheckboxes(selectedList) {
@@ -4628,28 +4648,15 @@ function renderHargaKain() {
     </tr>`;
   }).join('');
 
-  makeSortable(tbody, (newOrder) => {
-    // Baca nilai input saat ini sebelum re-render
-    const currentList = getJenisKainList();
-    const hargaMap = {};
-    currentList.forEach((j, idx) => {
-      const namaEl  = document.getElementById('kain-nama-' + idx);
-      const hargaEl = document.getElementById('kain-harga-' + idx);
-      const namaNow = namaEl ? namaEl.value.trim() : j.nama;
-      const hargaNow = hargaEl ? (parseFloat(hargaEl.value) || 0) : j.harga;
-      hargaMap[j.nama] = { nama: namaNow, harga: hargaNow };
+  // Guard: pasang listener hanya sekali (innerHTML hanya ganti children, tbody tetap sama)
+  if (!tbody._sortableKain) {
+    tbody._sortableKain = true;
+    makeSortable(tbody, (newOrder) => {
+      db.jenisKainOrder = newOrder.filter(Boolean);
+      saveDB('shared');
+      renderHargaKain();
     });
-    // Terapkan urutan baru
-    db.jenisKainOrder = newOrder.map(id => (hargaMap[id] ? hargaMap[id].nama : id));
-    // Update hargaKain dengan nama/harga terkini
-    const newHargaKain = {};
-    db.jenisKainOrder.forEach(n => { if (n) newHargaKain[n] = hargaMap[Object.keys(hargaMap).find(k => hargaMap[k].nama === n)]?.harga ?? db.hargaKain[n] ?? 0; });
-    // Jaga jenis kain yang tidak ada di order (seharusnya tidak ada, tapi aman)
-    Object.keys(db.hargaKain || {}).forEach(k => { if (!newHargaKain[k]) newHargaKain[k] = db.hargaKain[k]; });
-    db.hargaKain = newHargaKain;
-    saveDB('shared');
-    renderHargaKain();
-  });
+  }
 }
 
 function tambahJenisKain() {
