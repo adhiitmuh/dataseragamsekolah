@@ -2983,6 +2983,38 @@ async function loadFromFirestore() {
 
     if (needsConfigSave) saveDB('config');
 
+    // Migrasi harga override toko: rename produk lama SMP/SMA & baju putih generik
+    {
+      let tokoMigrated = false;
+      function _migrateOverrideObj(obj) {
+        if (!obj) return;
+        Object.keys(obj).forEach(name => {
+          if (name.includes('SMP/SMA')) {
+            const val = obj[name];
+            const smp = name.replace('SMP/SMA', 'SMP');
+            const sma = name.replace('SMP/SMA', 'SMA');
+            if (!obj[smp]) { obj[smp] = JSON.parse(JSON.stringify(val)); tokoMigrated = true; }
+            if (!obj[sma]) { obj[sma] = JSON.parse(JSON.stringify(val)); tokoMigrated = true; }
+            delete obj[name]; tokoMigrated = true;
+          }
+          if (name === 'Baju Putih Lengan Pendek' || name === 'Baju Putih Lengan Panjang') {
+            const val = obj[name];
+            ['SD','SMP','SMA'].forEach(lvl => {
+              const n = name + ' ' + lvl;
+              if (!obj[n]) { obj[n] = JSON.parse(JSON.stringify(val)); tokoMigrated = true; }
+            });
+            delete obj[name]; tokoMigrated = true;
+          }
+        });
+      }
+      _migrateOverrideObj(db.hargaJualOverride);
+      _migrateOverrideObj(db.hargaModalOverride);
+      if (db.hargaCustomPenjahit) {
+        Object.values(db.hargaCustomPenjahit).forEach(pObj => _migrateOverrideObj(pObj));
+      }
+      if (tokoMigrated) saveDB('config');
+    }
+
     // Auto-restore kain default yang hilang & bersihkan jenisKainOrder duplikat
     if (db.hargaKain) {
       let kainRestored = false;
