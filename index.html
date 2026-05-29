@@ -358,6 +358,9 @@ body.dark .page-title { color: #E5E7EB; }
   <div class="nav-item admin-only" onclick="showPage('harga')" id="nav-harga">
     <span class="nav-icon">📋</span><span class="nav-text">Harga Standar</span>
   </div>
+  <div class="nav-item admin-only" onclick="showPage('produk')" id="nav-produk">
+    <span class="nav-icon">📦</span><span class="nav-text">Master Produk</span>
+  </div>
   <div class="nav-item admin-only" onclick="showPage('bahan')" id="nav-bahan">
     <span class="nav-icon">🧵</span><span class="nav-text">Master Database Bahan</span>
   </div>
@@ -1098,6 +1101,18 @@ body.dark .page-title { color: #E5E7EB; }
     </div>
   </div>
 
+  <!-- ===== MASTER DATABASE PRODUK ===== -->
+  <div id="page-produk" class="page">
+    <div class="page-header">
+      <h1 class="page-title">📦 Master Database Produk</h1>
+      <button class="btn btn-primary" onclick="openModalProduk()">+ Tambah Produk</button>
+    </div>
+    <div class="alert alert-info">
+      Kelola daftar produk, ukuran, modal standar, dan harga jual. Perubahan langsung tersimpan ke database dan berlaku di semua fitur.
+    </div>
+    <div id="container-produk-list"></div>
+  </div>
+
   <!-- ===== EXPORT DATA ===== -->
   <div id="page-export" class="page">
     <div class="page-header">
@@ -1665,6 +1680,60 @@ body.dark .page-title { color: #E5E7EB; }
   </div>
 </div>
 
+<!-- Modal: Edit/Tambah Produk -->
+<div class="modal-overlay" id="modal-produk">
+  <div class="modal" style="max-width:760px; width:95%;">
+    <div class="modal-title">📦 <span id="modal-produk-title">Tambah Produk</span></div>
+    <input type="hidden" id="produk-edit-nama-lama">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+      <div>
+        <label class="form-label">Nama Produk *</label>
+        <input type="text" id="produk-nama" class="form-control" placeholder="Celana Panjang SMP/SMA">
+      </div>
+      <div>
+        <label class="form-label">Kategori Bahan</label>
+        <select id="produk-kategori" class="form-control">
+          <option value="">— Tidak ada —</option>
+          <option value="baju">Baju</option>
+          <option value="celana">Celana</option>
+          <option value="rok_span">Rok Span</option>
+          <option value="rok_rempel">Rok Rempel</option>
+          <option value="rompi">Rompi</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Info Kain</label>
+        <input type="text" id="produk-kain-info" class="form-control" placeholder="Kain Famatex Rp 38.000/yard">
+      </div>
+      <div>
+        <label class="form-label">Bahan Penjahit (Rp)</label>
+        <input type="number" id="produk-bahan-penjahit" class="form-control" value="500" min="0" step="100">
+      </div>
+    </div>
+    <div style="font-weight:bold; margin-bottom:8px; font-size:13px;">📏 Daftar Ukuran</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%; font-size:13px; border-collapse:collapse;" id="produk-sizes-table">
+        <thead>
+          <tr style="background:var(--green-dark); color:white;">
+            <th style="padding:6px 10px; text-align:left;">Ukuran</th>
+            <th style="padding:6px 10px; text-align:right;">Modal (Rp)</th>
+            <th style="padding:6px 10px; text-align:right;">Harga Jual (Rp)</th>
+            <th style="padding:6px 10px; text-align:right;">Kain (yard)</th>
+            <th style="padding:6px 10px; text-align:right;">Naik Jual (Rp)</th>
+            <th style="padding:6px 10px; text-align:center; width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="produk-sizes-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="addProdukSizeRow()">+ Tambah Ukuran</button>
+    <div class="modal-footer" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
+      <button class="btn btn-primary" onclick="saveProdukModal()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== LOGIN OVERLAY ===== -->
 <div id="login-overlay">
   <div class="login-box">
@@ -1700,7 +1769,7 @@ body.dark .page-title { color: #E5E7EB; }
 // =============================================
 //  DATA HARGA STANDAR (dari Excel)
 // =============================================
-const PRODUK_DATA = {
+let PRODUK_DATA = {
   'Baju Putih Lengan Pendek': {
     kategori: 'Baju Putih',
     kainInfo: 'Kain Ban Hijau Putih Rp 25.000/yard',
@@ -2154,7 +2223,7 @@ const DEFAULT_BAHAN = {
   ],
 };
 
-const PRODUK_NAMES = Object.keys(PRODUK_DATA);
+let PRODUK_NAMES = Object.keys(PRODUK_DATA);
 const TOLERANSI_PERSEN = 10; // Default toleransi 10%
 
 // =============================================
@@ -2249,6 +2318,7 @@ let db = {
   hargaJualOverride: {},   // per toko — override harga jual
   hargaCustomPenjahit: {}, // per toko — modal custom per penjahit { penjahitId: { produk: { ukuran: harga } } }
   kainOverride: {},        // global — override penggunaan kain per produk/ukuran
+  produkData: null,   // null = pakai PRODUK_DATA default (hardcoded)
 };
 
 // =============================================
@@ -2336,11 +2406,18 @@ async function loadFromFirestore() {
       db.jenisKainOrder  = s.jenisKainOrder  || [];
       db.produkKainMap   = s.produkKainMap   || null;
       db.kainOverride    = s.kainOverride    || {};
+      db.produkData      = s.produkData      || null;
       db.nextPenjahitId  = s.nextPenjahitId  || 7;
     } else {
       // First run — seed defaults
       db.penjahit = DEFAULT_PENJAHIT.map(p => ({...p, hargaCustom: {}}));
       db.nextPenjahitId = 7;
+    }
+
+    // Sync PRODUK_DATA from Firestore if available
+    if (db.produkData && Object.keys(db.produkData).length) {
+      PRODUK_DATA = db.produkData;
+      PRODUK_NAMES = Object.keys(PRODUK_DATA);
     }
 
     // 2. Load toko-specific data
@@ -2478,6 +2555,7 @@ async function _saveDBAsync(section) {
         jenisKainOrder: db.jenisKainOrder || [],
         produkKainMap:  db.produkKainMap,
         kainOverride:   db.kainOverride,
+        produkData:     db.produkData,
         nextPenjahitId: db.nextPenjahitId,
       });
     }
@@ -2765,6 +2843,7 @@ function refreshPage(name) {
   if (name === 'riwayat') renderRiwayat();
   if (name === 'users') renderUsers();
   if (name === 'export') initExportPage();
+  if (name === 'produk') renderMasterProduk();
 }
 
 // =============================================
@@ -6284,6 +6363,151 @@ function printLaporan(tipe) {
     <script>window.onload = function(){ window.print(); }<\/script>
   </body></html>`);
   win.document.close();
+}
+
+// =============================================
+//  MASTER DATABASE PRODUK
+// =============================================
+function renderMasterProduk() {
+  const container = document.getElementById('container-produk-list');
+  if (!container) return;
+  const names = PRODUK_NAMES;
+  if (!names.length) {
+    container.innerHTML = '<div class="alert alert-info">Belum ada produk. Klik "+ Tambah Produk" untuk mulai.</div>';
+    return;
+  }
+  container.innerHTML = names.map(name => {
+    const p = PRODUK_DATA[name];
+    if (!p) return '';
+    const kat = KATEGORI_BAHAN[name] || '—';
+    return `<div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <strong style="font-size:15px;">${name}</strong>
+          <span class="badge badge-gray" style="margin-left:8px; font-size:11px;">${p.sizes.length} ukuran</span>
+          ${kat !== '—' ? `<span class="badge badge-green" style="margin-left:4px; font-size:11px;">${kat}</span>` : ''}
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="openModalProduk('${name.replace(/'/g,"\\'")}')">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="konfirmHapusProduk('${name.replace(/'/g,"\\'")}')">🗑️</button>
+        </div>
+      </div>
+      <div style="font-size:12px; color:#666; margin-top:6px;">📌 ${p.kainInfo || '—'} &nbsp;|&nbsp; Bahan penjahit: Rp ${(p.bahanPenjahit||0).toLocaleString('id')}</div>
+      <div style="margin-top:8px; overflow-x:auto;">
+        <table style="font-size:12px; width:100%; border-collapse:collapse;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:4px 8px; text-align:left;">Ukuran</th>
+            <th style="padding:4px 8px; text-align:right;">Modal</th>
+            <th style="padding:4px 8px; text-align:right;">Harga Jual</th>
+            <th style="padding:4px 8px; text-align:right;">Kain</th>
+          </tr></thead>
+          <tbody>${p.sizes.map(s => `<tr style="border-top:1px solid #eee;">
+            <td style="padding:3px 8px;">${s.size}</td>
+            <td style="padding:3px 8px; text-align:right; color:#555;">${rp(s.modal)}</td>
+            <td style="padding:3px 8px; text-align:right; color:var(--green-dark); font-weight:bold;">${rp(s.hargaJual)}</td>
+            <td style="padding:3px 8px; text-align:right; color:#888;">${s.kain} yard</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModalProduk(namaLama) {
+  const tbody = document.getElementById('produk-sizes-tbody');
+  tbody.innerHTML = '';
+  if (namaLama) {
+    const p = PRODUK_DATA[namaLama];
+    document.getElementById('modal-produk-title').textContent = 'Edit Produk';
+    document.getElementById('produk-edit-nama-lama').value = namaLama;
+    document.getElementById('produk-nama').value = namaLama;
+    document.getElementById('produk-kategori').value = KATEGORI_BAHAN[namaLama] || '';
+    document.getElementById('produk-kain-info').value = p.kainInfo || '';
+    document.getElementById('produk-bahan-penjahit').value = p.bahanPenjahit || 500;
+    p.sizes.forEach(s => addProdukSizeRow(s));
+  } else {
+    document.getElementById('modal-produk-title').textContent = 'Tambah Produk';
+    document.getElementById('produk-edit-nama-lama').value = '';
+    document.getElementById('produk-nama').value = '';
+    document.getElementById('produk-kategori').value = '';
+    document.getElementById('produk-kain-info').value = '';
+    document.getElementById('produk-bahan-penjahit').value = 500;
+    addProdukSizeRow();
+  }
+  document.getElementById('modal-produk').classList.add('show');
+}
+
+let _produkSizeRowN = 0;
+function addProdukSizeRow(s) {
+  const n = _produkSizeRowN++;
+  const tbody = document.getElementById('produk-sizes-tbody');
+  const tr = document.createElement('tr');
+  tr.id = 'psrow-' + n;
+  tr.style.borderTop = '1px solid #eee';
+  tr.innerHTML = `
+    <td style="padding:4px 6px;"><input type="text" value="${s ? s.size : ''}" placeholder="No. 24" id="ps-size-${n}" style="width:80px; font-size:13px; padding:4px 6px; border:1px solid #ccc; border-radius:4px;"></td>
+    <td style="padding:4px 6px;"><input type="number" value="${s ? s.modal : ''}" placeholder="58000" id="ps-modal-${n}" min="0" step="500" style="width:100px; font-size:13px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:right;"></td>
+    <td style="padding:4px 6px;"><input type="number" value="${s ? s.hargaJual : ''}" placeholder="85000" id="ps-jual-${n}" min="0" step="500" style="width:100px; font-size:13px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:right;"></td>
+    <td style="padding:4px 6px;"><input type="number" value="${s ? s.kain : ''}" placeholder="0.96" id="ps-kain-${n}" min="0" step="0.01" style="width:80px; font-size:13px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:right;"></td>
+    <td style="padding:4px 6px;"><input type="number" value="${s ? (s.kenaikJual || 5000) : 5000}" id="ps-naik-${n}" min="0" step="500" style="width:80px; font-size:13px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:right;"></td>
+    <td style="padding:4px 6px; text-align:center;"><button class="btn btn-danger btn-sm" onclick="document.getElementById('psrow-${n}').remove()" style="padding:2px 8px;">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function saveProdukModal() {
+  const namaLama = document.getElementById('produk-edit-nama-lama').value;
+  const namaBaru = document.getElementById('produk-nama').value.trim();
+  if (!namaBaru) { alert('Nama produk wajib diisi!'); return; }
+  const kat = document.getElementById('produk-kategori').value;
+  const kainInfo = document.getElementById('produk-kain-info').value.trim();
+  const bahanPenjahit = parseFloat(document.getElementById('produk-bahan-penjahit').value) || 500;
+
+  // Baca semua ukuran dari baris yang ada
+  const sizes = [];
+  document.querySelectorAll('#produk-sizes-tbody tr').forEach(tr => {
+    const id = tr.id.replace('psrow-', '');
+    const size = document.getElementById('ps-size-' + id)?.value.trim();
+    const modal = parseFloat(document.getElementById('ps-modal-' + id)?.value) || 0;
+    const hargaJual = parseFloat(document.getElementById('ps-jual-' + id)?.value) || 0;
+    const kain = parseFloat(document.getElementById('ps-kain-' + id)?.value) || 0;
+    const kenaikJual = parseFloat(document.getElementById('ps-naik-' + id)?.value) || 5000;
+    if (size) sizes.push({ size, modal, hargaJual, kain, kenaikJual });
+  });
+  if (!sizes.length) { alert('Minimal harus ada 1 ukuran!'); return; }
+
+  // Jika nama berubah, hapus entry lama
+  if (namaLama && namaLama !== namaBaru) {
+    delete PRODUK_DATA[namaLama];
+    const idx = PRODUK_NAMES.indexOf(namaLama);
+    if (idx !== -1) PRODUK_NAMES.splice(idx, 1, namaBaru);
+    if (KATEGORI_BAHAN[namaLama] !== undefined) { KATEGORI_BAHAN[namaBaru] = KATEGORI_BAHAN[namaLama]; delete KATEGORI_BAHAN[namaLama]; }
+  } else if (!namaLama) {
+    PRODUK_NAMES.push(namaBaru);
+  }
+
+  PRODUK_DATA[namaBaru] = { kategori: kat, kainInfo, bahanPenjahit, sizes };
+  if (kat) KATEGORI_BAHAN[namaBaru] = kat;
+  else delete KATEGORI_BAHAN[namaBaru];
+
+  // Simpan ke Firestore
+  db.produkData = JSON.parse(JSON.stringify(PRODUK_DATA));
+  saveDB('shared');
+
+  closeModal('modal-produk');
+  renderMasterProduk();
+  // Update filter dropdown produk di order jika sudah render
+  if (typeof populateOrderFilters === 'function') populateOrderFilters();
+}
+
+function konfirmHapusProduk(nama) {
+  if (!confirm(`Hapus produk "${nama}"? Data order yang sudah ada tidak akan terhapus.`)) return;
+  delete PRODUK_DATA[nama];
+  const idx = PRODUK_NAMES.indexOf(nama);
+  if (idx !== -1) PRODUK_NAMES.splice(idx, 1);
+  delete KATEGORI_BAHAN[nama];
+  db.produkData = JSON.parse(JSON.stringify(PRODUK_DATA));
+  saveDB('shared');
+  renderMasterProduk();
 }
 </script>
 </body>
