@@ -1110,6 +1110,13 @@ body.dark .page-title { color: #E5E7EB; }
     <div class="alert alert-info">
       Kelola daftar produk, ukuran, modal standar, dan harga jual. Perubahan langsung tersimpan ke database dan berlaku di semua fitur.
     </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <button id="pf-all"     class="btn btn-primary btn-sm" onclick="setProdukFilter('')">Semua</button>
+      <button id="pf-SD"      class="btn btn-outline btn-sm" onclick="setProdukFilter('SD')">SD</button>
+      <button id="pf-SMP"     class="btn btn-outline btn-sm" onclick="setProdukFilter('SMP')">SMP</button>
+      <button id="pf-SMA"     class="btn btn-outline btn-sm" onclick="setProdukFilter('SMA')">SMA</button>
+      <button id="pf-Pramuka" class="btn btn-outline btn-sm" onclick="setProdukFilter('Pramuka')">Pramuka</button>
+    </div>
     <div id="container-produk-list"></div>
   </div>
 
@@ -2662,6 +2669,25 @@ const DEFAULT_BAHAN = {
 };
 
 let PRODUK_NAMES = Object.keys(PRODUK_DATA);
+
+const PRODUK_ORDER_CANONICAL = [
+  'Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA',
+  'Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA',
+  'Baju Pramuka Lengan Pendek','Baju Pramuka Lengan Panjang',
+  'Celana Panjang Merah SD','Celana Pendek Merah SD',
+  'Celana Panjang Pramuka SD','Celana Pendek Pramuka SD',
+  'Celana Panjang SMP','Celana Panjang SMA',
+  'Celana Panjang Pramuka SMP','Celana Panjang Pramuka SMA',
+  'Rok Rempel SD Panjang','Rok Rempel SD Pendek',
+  'Rok Panjang Pramuka SD','Rok Pendek Pramuka SD',
+  'Rok Span SMP','Rok Span SMA',
+  'Rok Rempel SMP','Rok Rempel SMA',
+  'Rok Span Pramuka SMP','Rok Span Pramuka SMA',
+  'Rok Rempel Pramuka SMP','Rok Rempel Pramuka SMA',
+  'Rompi SD',
+];
+PRODUK_NAMES = PRODUK_ORDER_CANONICAL.filter(n => PRODUK_DATA[n])
+  .concat(PRODUK_NAMES.filter(n => !PRODUK_ORDER_CANONICAL.includes(n)));
 const TOLERANSI_PERSEN = 10; // Default toleransi 10%
 
 // =============================================
@@ -2751,6 +2777,7 @@ let db = {
   nextProposalId: 1,
   hargaKain: null,       // { 'Kain Putih': 25000, ... } keyed by jenis kain
   jenisKainOrder: [],    // urutan tampil jenis kain (array of nama)
+  jenisKainHapus: [],    // nama jenis kain yang sengaja dihapus (agar tidak muncul lagi)
   produkKainMap: null,   // { 'Baju Putih LP': 'Kain Putih', ... }
   hargaModalOverride: {},  // per toko — override modal standar
   hargaJualOverride: {},   // per toko — override harga jual
@@ -2800,9 +2827,10 @@ function migrateDBFields() {
       });
       db.hargaKain = newKain;
     }
-    // Tambahkan jenis kain baru dari default jika belum ada di Firestore
+    // Tambahkan jenis kain baru dari default jika belum ada di Firestore (kecuali yang sudah dihapus)
+    const _kainHapusSet = new Set(db.jenisKainHapus || []);
     JENIS_KAIN_DEFAULT.forEach(j => {
-      if (db.hargaKain[j.nama] === undefined) db.hargaKain[j.nama] = j.harga;
+      if (db.hargaKain[j.nama] === undefined && !_kainHapusSet.has(j.nama)) db.hargaKain[j.nama] = j.harga;
     });
   }
   if (!db.produkKainMap) db.produkKainMap = {};
@@ -2842,6 +2870,7 @@ async function loadFromFirestore() {
       db.bahan           = s.bahan           || null;
       db.hargaKain       = s.hargaKain       || null;
       db.jenisKainOrder  = s.jenisKainOrder  || [];
+      db.jenisKainHapus  = s.jenisKainHapus  || [];
       db.produkKainMap   = s.produkKainMap   || null;
       db.kainOverride    = s.kainOverride    || {};
       db.produkData      = s.produkData      || null;
@@ -2880,7 +2909,9 @@ async function loadFromFirestore() {
     // Sync PRODUK_DATA from Firestore if available
     if (db.produkData && Object.keys(db.produkData).length) {
       PRODUK_DATA = db.produkData;
-      PRODUK_NAMES = Object.keys(PRODUK_DATA);
+      const _allKeys = Object.keys(PRODUK_DATA);
+      PRODUK_NAMES = PRODUK_ORDER_CANONICAL.filter(n => _allKeys.includes(n))
+        .concat(_allKeys.filter(n => !PRODUK_ORDER_CANONICAL.includes(n)));
     }
 
     // 2. Load toko-specific data
@@ -3018,8 +3049,9 @@ async function loadFromFirestore() {
     // Auto-restore kain default yang hilang & bersihkan jenisKainOrder duplikat
     if (db.hargaKain) {
       let kainRestored = false;
+      const _hapusSet = new Set(db.jenisKainHapus || []);
       JENIS_KAIN_DEFAULT.forEach(({nama, harga}) => {
-        if (!(nama in db.hargaKain)) { db.hargaKain[nama] = harga; kainRestored = true; }
+        if (!(nama in db.hargaKain) && !_hapusSet.has(nama)) { db.hargaKain[nama] = harga; kainRestored = true; }
       });
       if (db.jenisKainOrder) {
         const seen = new Set();
@@ -3048,6 +3080,7 @@ async function _saveDBAsync(section) {
         bahan:          db.bahan,
         hargaKain:      db.hargaKain,
         jenisKainOrder: db.jenisKainOrder || [],
+        jenisKainHapus: db.jenisKainHapus || [],
         produkKainMap:  db.produkKainMap,
         kainOverride:   db.kainOverride,
         produkData:     db.produkData,
@@ -5251,6 +5284,8 @@ function hapusJenisKain(idx) {
   if (!j) return;
   if (!confirm(`Hapus "${j.nama}" dari daftar jenis kain?`)) return;
   delete db.hargaKain[j.nama];
+  if (!db.jenisKainHapus) db.jenisKainHapus = [];
+  if (!db.jenisKainHapus.includes(j.nama)) db.jenisKainHapus.push(j.nama);
   saveDB('shared');
   renderHargaKain();
 }
@@ -6866,13 +6901,29 @@ function printLaporan(tipe) {
 // =============================================
 //  MASTER DATABASE PRODUK
 // =============================================
+let produkFilterActive = '';
+
+function setProdukFilter(f) {
+  produkFilterActive = f;
+  ['', 'SD', 'SMP', 'SMA', 'Pramuka'].forEach(v => {
+    const btn = document.getElementById('pf-' + (v || 'all'));
+    if (!btn) return;
+    btn.className = btn.className.replace(/\bbtn-primary\b|\bbtn-outline\b/g, '').trim();
+    btn.className += (v === f) ? ' btn-primary' : ' btn-outline';
+  });
+  renderMasterProduk();
+}
+
 function renderMasterProduk() {
   const container = document.getElementById('container-produk-list');
   if (!container) return;
-  const names = PRODUK_NAMES;
   const isAdmin = currentUserData?.role === 'admin';
+  const showDrag = isAdmin && !produkFilterActive;
+  const names = produkFilterActive
+    ? PRODUK_NAMES.filter(n => n.includes(produkFilterActive))
+    : PRODUK_NAMES;
   if (!names.length) {
-    container.innerHTML = '<div class="alert alert-info">Belum ada produk. Klik "+ Tambah Produk" untuk mulai.</div>';
+    container.innerHTML = '<div class="alert alert-info">Tidak ada produk yang cocok dengan filter ini.</div>';
     return;
   }
   container.innerHTML = names.map(name => {
@@ -6883,7 +6934,7 @@ function renderMasterProduk() {
     return `<div class="card" data-sort-id="${name.replace(/"/g,'&quot;')}" style="margin-bottom:12px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          ${isAdmin ? '<span class="drag-handle" title="Drag untuk atur urutan" style="cursor:grab; font-size:20px; color:#bbb; user-select:none; line-height:1;">⠿</span>' : ''}
+          ${showDrag ? '<span class="drag-handle" title="Drag untuk atur urutan" style="cursor:grab; font-size:20px; color:#bbb; user-select:none; line-height:1;">⠿</span>' : ''}
           <div>
             <strong style="font-size:15px;">${name}</strong>
             <span class="badge badge-gray" style="margin-left:8px; font-size:11px;">${p.sizes.length} ukuran</span>
@@ -6918,6 +6969,7 @@ function renderMasterProduk() {
   if (isAdmin && !container._sortableProduk) {
     container._sortableProduk = true;
     makeSortableDiv(container, (newOrder) => {
+      if (produkFilterActive) return;
       const filtered = newOrder.filter(Boolean);
       PRODUK_NAMES.length = 0;
       filtered.forEach(n => PRODUK_NAMES.push(n));
@@ -6935,10 +6987,10 @@ function makeSortableDiv(container, onReorder) {
   }
   function startDrag(card) {
     dragging = card;
-    dragging.style.opacity = '0.4';
+    dragging.style.cssText += ';opacity:0.35;transform:scale(1.02);box-shadow:0 8px 28px rgba(0,0,0,0.18);z-index:10;position:relative;transition:none;cursor:grabbing;';
     placeholder = document.createElement('div');
     placeholder.className = 'sortable-placeholder';
-    placeholder.style.cssText = `height:${card.offsetHeight}px;border:2px dashed #ccc;border-radius:8px;margin-bottom:12px;background:#f8f8f8;`;
+    placeholder.style.cssText = `height:${card.offsetHeight}px;border:2.5px dashed var(--green-dark);border-radius:8px;margin-bottom:12px;background:rgba(76,175,80,0.06);box-sizing:border-box;`;
     card.parentNode.insertBefore(placeholder, card.nextSibling);
   }
   function moveDrag(clientY) {
@@ -6955,6 +7007,11 @@ function makeSortableDiv(container, onReorder) {
   function endDrag() {
     if (!dragging) return;
     dragging.style.opacity = '';
+    dragging.style.transform = '';
+    dragging.style.boxShadow = '';
+    dragging.style.zIndex = '';
+    dragging.style.position = '';
+    dragging.style.cursor = '';
     container.insertBefore(dragging, placeholder);
     placeholder.remove();
     placeholder = null;
