@@ -2703,6 +2703,17 @@ const PENJAHIT_PRODUK_DEFAULTS = {
   'Yuliani':  ['Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
 };
 
+const MIGRASI_NAMA_PRODUK = {
+  'Celana Panjang SMP/SMA':         ['Celana Panjang SMP', 'Celana Panjang SMA'],
+  'Rok Span SMP/SMA':               ['Rok Span SMP', 'Rok Span SMA'],
+  'Rok Rempel SMP/SMA':             ['Rok Rempel SMP', 'Rok Rempel SMA'],
+  'Celana Panjang Pramuka SMP/SMA': ['Celana Panjang Pramuka SMP', 'Celana Panjang Pramuka SMA'],
+  'Rok Span Pramuka SMP/SMA':       ['Rok Span Pramuka SMP', 'Rok Span Pramuka SMA'],
+  'Rok Rempel Pramuka SMP/SMA':     ['Rok Rempel Pramuka SMP', 'Rok Rempel Pramuka SMA'],
+  'Baju Putih Lengan Pendek SMP/SMA':  ['Baju Putih Lengan Pendek SMP', 'Baju Putih Lengan Pendek SMA'],
+  'Baju Putih Lengan Panjang SMP/SMA': ['Baju Putih Lengan Panjang SMP', 'Baju Putih Lengan Panjang SMA'],
+};
+
 const PENJAHIT_SPESIALIS_DEFAULT = {
   'Idul': 'Celana',
   'Juhaeriah': 'Rok',
@@ -2851,6 +2862,14 @@ function migrateDBFields() {
   if (!db.hargaCustomPenjahit) db.hargaCustomPenjahit = {};
   if (!db.kainOverride)       db.kainOverride = {};
   db.penjahit.forEach(p => {
+    if (p.produkList && p.produkList.length > 0) {
+      const migrated = [];
+      p.produkList.forEach(nama => {
+        if (MIGRASI_NAMA_PRODUK[nama]) migrated.push(...MIGRASI_NAMA_PRODUK[nama]);
+        else migrated.push(nama);
+      });
+      p.produkList = [...new Set(migrated)];
+    }
     if (!p.produkList || p.produkList.length === 0)
       p.produkList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
     if (!p.spesialis && PENJAHIT_SPESIALIS_DEFAULT[p.nama])
