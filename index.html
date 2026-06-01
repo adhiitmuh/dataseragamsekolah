@@ -1336,7 +1336,7 @@ body.dark .page-title { color: #E5E7EB; }
               <th style="padding:7px 8px; font-size:12px; text-align:left; font-weight:bold; width:160px;">Ukuran</th>
               <th style="padding:7px 8px; font-size:12px; text-align:center; font-weight:bold; width:70px;">Qty</th>
               <th style="padding:7px 8px; font-size:12px; text-align:left; font-weight:bold; width:180px;">Harga/Pcs (Rp)</th>
-              <th style="padding:7px 8px; font-size:12px; text-align:left; font-weight:bold; width:150px;">Untung/pcs</th>
+              <th style="padding:7px 8px; font-size:12px; text-align:left; font-weight:bold; width:150px;" class="admin-col">Untung/pcs</th>
               <th style="padding:7px 8px; width:36px;"></th>
             </tr>
           </thead>
@@ -1382,7 +1382,7 @@ body.dark .page-title { color: #E5E7EB; }
         <div class="calc-row" style="color:#1565C0;"><span>Modal Kain (harga kain × yard)</span><span id="calc-modal-kain">—</span></div>
         <div class="calc-row" style="color:#6A1B9A;"><span>Bahan Tambahan</span><span id="calc-bahan-tambahan">—</span></div>
         <div class="calc-row" style="font-weight:bold; border-top:1px dashed #ccc; padding-top:4px; margin-top:4px;"><span>Total Modal Penjahit</span><span id="calc-total-modal">—</span></div>
-        <div class="calc-row" style="color:var(--green); font-weight:bold;"><span>Untung Penjahit per Pcs</span><span id="calc-untung-penjahit">—</span></div>
+        <div class="calc-row admin-col" style="color:var(--green); font-weight:bold;"><span>Untung Penjahit per Pcs</span><span id="calc-untung-penjahit">—</span></div>
         <div style="height:8px;"></div>
         <div class="calc-row"><span>Modal Standar (referensi)</span><span id="calc-modal-std">—</span></div>
         <div class="calc-row"><span>Harga Penjahit (diminta)</span><span id="calc-harga-penjahit">—</span></div>
@@ -3838,7 +3838,7 @@ function addBulkRow() {
       <input type="number" id="bulk-harga-${n}" placeholder="Auto" style="width:100%;font-size:13px;" oninput="onBulkCalc(${n})">
       <div id="bulk-hint-${n}" style="font-size:10px;color:#1565C0;margin-top:2px;"></div>
     </td>
-    <td style="padding:6px 6px;">
+    <td style="padding:6px 6px;" class="admin-col">
       <span id="bulk-untung-${n}" style="font-size:12px;"></span>
     </td>
     <td style="padding:6px 4px;text-align:center;">
