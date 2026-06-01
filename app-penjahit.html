@@ -2695,12 +2695,57 @@ const TOLERANSI_PERSEN = 10; // Default toleransi 10%
 // =============================================
 // Produk default per penjahit (untuk migrasi & default baru)
 const PENJAHIT_PRODUK_DEFAULTS = {
-  'Idul':     ['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP','Celana Panjang SMA'],
-  'Juhaeriah':['Rok Span SMP','Rok Span SMA','Rok Rempel SMP','Rok Rempel SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
-  'Nur Alam': ['Baju Pramuka Lengan Pendek','Baju Pramuka Lengan Panjang','Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
-  'Pak Sukri':['Celana Panjang Merah SD','Celana Pendek Merah SD','Celana Panjang SMP','Celana Panjang SMA','Rok Span SMP','Rok Span SMA','Rok Rempel SMP','Rok Rempel SMA','Rok Rempel SD Panjang','Rok Rempel SD Pendek'],
-  'Vina':     ['Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
-  'Yuliani':  ['Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA','Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA'],
+  'Idul': [
+    'Celana Panjang Merah SD','Celana Pendek Merah SD',
+    'Celana Panjang Pramuka SD','Celana Pendek Pramuka SD',
+    'Celana Panjang SMP','Celana Panjang SMA',
+    'Celana Panjang Pramuka SMP','Celana Panjang Pramuka SMA',
+  ],
+  'Juhaeriah': [
+    'Rok Rempel SD Panjang','Rok Rempel SD Pendek',
+    'Rok Panjang Pramuka SD','Rok Pendek Pramuka SD',
+    'Rok Span SMP','Rok Span SMA',
+    'Rok Rempel SMP','Rok Rempel SMA',
+    'Rok Span Pramuka SMP','Rok Span Pramuka SMA',
+    'Rok Rempel Pramuka SMP','Rok Rempel Pramuka SMA',
+  ],
+  'Nur Alam': [
+    'Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA',
+    'Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA',
+    'Baju Pramuka Lengan Pendek','Baju Pramuka Lengan Panjang',
+    'Rompi SD',
+  ],
+  'Pak Sukri': [
+    'Celana Panjang Merah SD','Celana Pendek Merah SD',
+    'Celana Panjang Pramuka SD','Celana Pendek Pramuka SD',
+    'Celana Panjang SMP','Celana Panjang SMA',
+    'Celana Panjang Pramuka SMP','Celana Panjang Pramuka SMA',
+    'Rok Rempel SD Panjang','Rok Rempel SD Pendek',
+    'Rok Panjang Pramuka SD','Rok Pendek Pramuka SD',
+    'Rok Span SMP','Rok Span SMA',
+    'Rok Rempel SMP','Rok Rempel SMA',
+    'Rok Span Pramuka SMP','Rok Span Pramuka SMA',
+    'Rok Rempel Pramuka SMP','Rok Rempel Pramuka SMA',
+  ],
+  'Vina': [
+    'Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA',
+    'Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA',
+  ],
+  'Yuliani': [
+    'Baju Putih Lengan Pendek SD','Baju Putih Lengan Pendek SMP','Baju Putih Lengan Pendek SMA',
+    'Baju Putih Lengan Panjang SD','Baju Putih Lengan Panjang SMP','Baju Putih Lengan Panjang SMA',
+  ],
+};
+
+const MIGRASI_NAMA_PRODUK = {
+  'Celana Panjang SMP/SMA':         ['Celana Panjang SMP', 'Celana Panjang SMA'],
+  'Rok Span SMP/SMA':               ['Rok Span SMP', 'Rok Span SMA'],
+  'Rok Rempel SMP/SMA':             ['Rok Rempel SMP', 'Rok Rempel SMA'],
+  'Celana Panjang Pramuka SMP/SMA': ['Celana Panjang Pramuka SMP', 'Celana Panjang Pramuka SMA'],
+  'Rok Span Pramuka SMP/SMA':       ['Rok Span Pramuka SMP', 'Rok Span Pramuka SMA'],
+  'Rok Rempel Pramuka SMP/SMA':     ['Rok Rempel Pramuka SMP', 'Rok Rempel Pramuka SMA'],
+  'Baju Putih Lengan Pendek SMP/SMA':  ['Baju Putih Lengan Pendek SMP', 'Baju Putih Lengan Pendek SMA'],
+  'Baju Putih Lengan Panjang SMP/SMA': ['Baju Putih Lengan Panjang SMP', 'Baju Putih Lengan Panjang SMA'],
 };
 
 const PENJAHIT_SPESIALIS_DEFAULT = {
@@ -2850,13 +2895,33 @@ function migrateDBFields() {
   if (!db.hargaJualOverride)  db.hargaJualOverride = {};
   if (!db.hargaCustomPenjahit) db.hargaCustomPenjahit = {};
   if (!db.kainOverride)       db.kainOverride = {};
+  let penjahitChanged = false;
   db.penjahit.forEach(p => {
-    if (!p.produkList || p.produkList.length === 0)
+    if (p.produkList && p.produkList.length > 0) {
+      const migrated = [];
+      let hadOldName = false;
+      p.produkList.forEach(nama => {
+        if (MIGRASI_NAMA_PRODUK[nama]) { migrated.push(...MIGRASI_NAMA_PRODUK[nama]); hadOldName = true; }
+        else migrated.push(nama);
+      });
+      if (hadOldName) { p.produkList = [...new Set(migrated)]; penjahitChanged = true; }
+    }
+    if (!p.produkList || p.produkList.length === 0) {
       p.produkList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
-    if (!p.spesialis && PENJAHIT_SPESIALIS_DEFAULT[p.nama])
+      penjahitChanged = true;
+    }
+    const defaultList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
+    const currentSet = new Set(p.produkList);
+    defaultList.forEach(nama => {
+      if (!currentSet.has(nama)) { p.produkList.push(nama); penjahitChanged = true; }
+    });
+    if (!p.spesialis && PENJAHIT_SPESIALIS_DEFAULT[p.nama]) {
       p.spesialis = PENJAHIT_SPESIALIS_DEFAULT[p.nama];
+      penjahitChanged = true;
+    }
     if (!p.hargaCustom) p.hargaCustom = {};
   });
+  return penjahitChanged;
 }
 
 async function loadFromFirestore() {
@@ -3061,7 +3126,7 @@ async function loadFromFirestore() {
       if (kainRestored) saveDB('shared');
     }
 
-    migrateDBFields();
+    if (migrateDBFields()) saveDB('shared');
     hideLoading();
   } catch(err) {
     hideLoading();
