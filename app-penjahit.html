@@ -1082,6 +1082,27 @@ body.dark .page-title { color: #E5E7EB; }
     <div class="alert alert-info">
       Kelola akun staff yang bisa mengakses aplikasi. Staff hanya bisa mengakses: Order, Pengambilan Bahan, Sesi Produksi, dan Laporan Penghasilan.
     </div>
+    <div id="pending-users-section" style="display:none;margin-bottom:20px;">
+      <h3 style="font-size:15px;font-weight:bold;margin-bottom:8px;">⏳ Permintaan Pendaftaran</h3>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Nama</th>
+                <th>Toko</th>
+                <th>Tanggal</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-pending-users"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <h3 style="font-size:15px;font-weight:bold;margin-bottom:8px;">👥 User Aktif</h3>
     <div class="card">
       <div class="table-wrap">
         <table>
@@ -1089,7 +1110,7 @@ body.dark .page-title { color: #E5E7EB; }
             <tr>
               <th>#</th>
               <th>Nama</th>
-              <th>Email</th>
+              <th>Username</th>
               <th>Role</th>
               <th>Toko</th>
               <th>Aksi</th>
@@ -1208,9 +1229,9 @@ body.dark .page-title { color: #E5E7EB; }
         <input type="text" id="new-user-nama" placeholder="Nama user">
       </div>
       <div class="form-group">
-        <label>Email *</label>
-        <input type="text" id="new-user-email" placeholder="email@harmoni.com">
-        <div class="hint" id="new-user-email-hint">Email yang dipakai untuk login</div>
+        <label>Username *</label>
+        <input type="text" id="new-user-username" placeholder="username (huruf/angka)">
+        <div class="hint" id="new-user-username-hint">Username untuk login (tidak bisa diubah)</div>
       </div>
     </div>
     <div class="form-row" id="new-user-password-row">
@@ -1243,6 +1264,45 @@ body.dark .page-title { color: #E5E7EB; }
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-user')">Batal</button>
       <button class="btn btn-primary" id="btn-save-user" onclick="saveUser()">💾 Simpan User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL APPROVE PENDAFTARAN ===== -->
+<div class="modal-overlay" id="modal-approve-user">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-title">✅ Setujui Pendaftaran</div>
+    <input type="hidden" id="approve-pending-id">
+    <div id="approve-user-info" style="background:#f0f4f0;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Role</label>
+        <select id="approve-role">
+          <option value="staff">Staff</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Toko</label>
+        <select id="approve-toko">
+          <option value="harmonis_sentral">Harmonis Sentral</option>
+          <option value="harmoni_indonesia">Harmoni Indonesia</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Set Password *</label>
+        <input type="password" id="approve-password" placeholder="Min. 6 karakter">
+      </div>
+      <div class="form-group">
+        <label>Konfirmasi Password *</label>
+        <input type="password" id="approve-password2" placeholder="Ulangi password">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-approve-user')">Batal</button>
+      <button class="btn btn-primary" id="btn-approve-user" onclick="doApproveUser()">✅ Setujui & Buat Akun</button>
     </div>
   </div>
 </div>
@@ -1753,15 +1813,45 @@ body.dark .page-title { color: #E5E7EB; }
       <p>Sistem Manajemen Penjahit</p>
     </div>
     <div class="login-error" id="login-error"></div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="text" id="login-email" placeholder="email@harmoni.com" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <div id="login-form-panel">
+      <div class="form-group">
+        <label>Email / Username</label>
+        <input type="text" id="login-username" placeholder="email atau username" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">🔐 Masuk</button>
+      <div style="text-align:center;margin-top:14px;">
+        <a href="#" onclick="showRegisterPanel();return false;" style="font-size:13px;color:var(--green);">Belum punya akun? Daftar di sini</a>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <div id="register-form-panel" style="display:none;">
+      <div style="font-weight:bold;font-size:15px;margin-bottom:14px;text-align:center;">📝 Daftar Akun Baru</div>
+      <div class="form-group">
+        <label>Username *</label>
+        <input type="text" id="reg-username" placeholder="Buat username unik (huruf/angka)">
+      </div>
+      <div class="form-group">
+        <label>Nama Lengkap *</label>
+        <input type="text" id="reg-nama" placeholder="Nama lengkap Anda">
+      </div>
+      <div class="form-group">
+        <label>Toko *</label>
+        <select id="reg-toko">
+          <option value="harmonis_sentral">Harmonis Sentral</option>
+          <option value="harmoni_indonesia">Harmoni Indonesia</option>
+        </select>
+      </div>
+      <div class="hint" style="margin-bottom:14px;font-size:12px;">Permintaan akan menunggu persetujuan admin sebelum bisa login.</div>
+      <button class="login-btn" id="reg-btn" onclick="doRegister()">📨 Kirim Permintaan</button>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="#" onclick="showLoginPanel();return false;" style="font-size:13px;color:var(--green);">← Kembali ke login</a>
+      </div>
     </div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">🔐 Masuk</button>
   </div>
 </div>
 
@@ -3190,28 +3280,67 @@ function saveDB(section) {
 // =============================================
 //  AUTH FUNCTIONS
 // =============================================
+function usernameToEmail(username) {
+  return username.toLowerCase().trim() + '@harmoni.app';
+}
+
+function showRegisterPanel() {
+  document.getElementById('login-form-panel').style.display = 'none';
+  document.getElementById('register-form-panel').style.display = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+function showLoginPanel() {
+  document.getElementById('register-form-panel').style.display = 'none';
+  document.getElementById('login-form-panel').style.display = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
 async function doLogin() {
-  const email    = document.getElementById('login-email').value.trim();
+  const input    = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
-  const errEl    = document.getElementById('login-error');
   const btn      = document.getElementById('login-btn');
-  errEl.style.display = 'none';
-  if (!email || !password) { showLoginError('Email dan password wajib diisi.'); return; }
+  if (!input || !password) { showLoginError('Username/email dan password wajib diisi.'); return; }
+  const email = input.includes('@') ? input : usernameToEmail(input);
   btn.disabled = true; btn.textContent = 'Masuk...';
   try {
     await auth.signInWithEmailAndPassword(email, password);
-    // onAuthStateChanged will handle the rest
   } catch(err) {
     btn.disabled = false; btn.textContent = '🔐 Masuk';
     const msgs = {
-      'auth/user-not-found': 'Email tidak ditemukan.',
+      'auth/user-not-found': 'Username/email tidak ditemukan.',
       'auth/wrong-password': 'Password salah.',
-      'auth/invalid-email': 'Format email tidak valid.',
+      'auth/invalid-email': 'Format tidak valid.',
       'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
-      'auth/invalid-credential': 'Email atau password salah.',
+      'auth/invalid-credential': 'Username/email atau password salah.',
     };
     showLoginError(msgs[err.code] || 'Login gagal: ' + err.message);
   }
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
+  const nama     = document.getElementById('reg-nama').value.trim();
+  const toko     = document.getElementById('reg-toko').value;
+  const btn      = document.getElementById('reg-btn');
+  if (!username || !nama) { showLoginError('Username dan nama wajib diisi.'); return; }
+  if (!/^[a-z0-9_]+$/.test(username)) { showLoginError('Username hanya boleh huruf kecil, angka, dan underscore.'); return; }
+  btn.disabled = true; btn.textContent = 'Mengirim...';
+  try {
+    const existing = await firestore.collection('pendingUsers').where('username','==',username).get();
+    const existingUser = await firestore.collection('users').where('username','==',username).get();
+    if (!existing.empty || !existingUser.empty) {
+      showLoginError('Username sudah digunakan. Pilih yang lain.'); btn.disabled=false; btn.textContent='📨 Kirim Permintaan'; return;
+    }
+    await firestore.collection('pendingUsers').add({ username, nama, toko, tanggal: new Date().toISOString().slice(0,10), status:'pending' });
+    showLoginPanel();
+    showLoginError('✅ Permintaan terkirim! Tunggu persetujuan admin.');
+    document.getElementById('login-error').style.background='#e8f5e9';
+    document.getElementById('login-error').style.color='#2e7d32';
+    document.getElementById('login-error').style.borderColor='#a5d6a7';
+  } catch(e) {
+    showLoginError('Gagal mengirim permintaan: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '📨 Kirim Permintaan';
 }
 
 function showLoginError(msg) {
@@ -3253,7 +3382,7 @@ function applyRoleUI(userData) {
   // Set toko-select value
   document.getElementById('toko-select').value = currentToko;
   // User info
-  document.getElementById('user-nama').textContent = userData.nama || userData.email || '—';
+  document.getElementById('user-nama').textContent = userData.nama || userData.username || userData.email || '—';
   document.getElementById('user-role-label').textContent = isAdmin ? '👑 Admin' : '👤 Staff';
 }
 
@@ -3287,10 +3416,12 @@ auth.onAuthStateChanged(async (user) => {
         const usersSnap = await firestore.collection('users').limit(1).get();
         if (usersSnap.empty) {
           // First user ever → auto-create admin
+          const _uname = user.email.replace('@harmoni.app','').split('@')[0];
           userData = {
             uid: user.uid,
+            username: _uname,
             email: user.email,
-            nama: user.email.split('@')[0],
+            nama: _uname,
             role: 'admin',
             toko: 'harmonis_sentral',
           };
@@ -6251,25 +6382,55 @@ async function renderUsers() {
     allUsers = snap.docs.map(d => ({uid: d.id, ...d.data()}));
     if (!allUsers.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Belum ada user</p></td></tr>';
-      return;
+    } else {
+      tbody.innerHTML = allUsers.map((u, i) => {
+        const uname = u.username || u.email.replace('@harmoni.app','').split('@')[0];
+        return `<tr>
+          <td>${i+1}</td>
+          <td><strong>${u.nama || '—'}</strong></td>
+          <td style="color:#555;">${uname}</td>
+          <td>${u.role === 'admin'
+            ? '<span class="badge badge-green">👑 Admin</span>'
+            : '<span class="badge badge-gray">👤 Staff</span>'}</td>
+          <td><span class="badge badge-yellow">🏪 ${tokoLabel(u.toko || 'harmonis_sentral')}</span></td>
+          <td>
+            <button class="btn btn-primary btn-sm" onclick="openEditUser('${u.uid}')">✏️</button>
+            ${u.uid !== currentUser.uid
+              ? `<button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="hapusUser('${u.uid}','${u.nama}')">🗑️</button>`
+              : '<span style="font-size:11px;color:#888;margin-left:6px;">(kamu)</span>'}
+          </td>
+        </tr>`;
+      }).join('');
     }
-    tbody.innerHTML = allUsers.map((u, i) => `<tr>
-      <td>${i+1}</td>
-      <td><strong>${u.nama || '—'}</strong></td>
-      <td style="color:#555;">${u.email || '—'}</td>
-      <td>${u.role === 'admin'
-        ? '<span class="badge badge-green">👑 Admin</span>'
-        : '<span class="badge badge-gray">👤 Staff</span>'}</td>
-      <td><span class="badge badge-yellow">🏪 ${tokoLabel(u.toko || 'harmonis_sentral')}</span></td>
-      <td>
-        <button class="btn btn-primary btn-sm" onclick="openEditUser('${u.uid}')">✏️</button>
-        ${u.uid !== currentUser.uid
-          ? `<button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="hapusUser('${u.uid}','${u.nama}')">🗑️</button>`
-          : '<span style="font-size:11px;color:#888;margin-left:6px;">(kamu)</span>'}
-      </td>
-    </tr>`).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;padding:16px;">Error: ${e.message}</td></tr>`;
+  }
+  await renderPendingUsers();
+}
+
+async function renderPendingUsers() {
+  const section = document.getElementById('pending-users-section');
+  const tbody   = document.getElementById('tbody-pending-users');
+  try {
+    const snap = await firestore.collection('pendingUsers').where('status','==','pending').get();
+    if (snap.empty) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    tbody.innerHTML = snap.docs.map((d, i) => {
+      const p = d.data();
+      return `<tr>
+        <td>${i+1}</td>
+        <td><strong>${p.username}</strong></td>
+        <td>${p.nama}</td>
+        <td><span class="badge badge-yellow">🏪 ${tokoLabel(p.toko)}</span></td>
+        <td>${p.tanggal}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="openApproveUser('${d.id}')">✅ Setujui</button>
+          <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="tolakPendingUser('${d.id}','${p.username}')">✕ Tolak</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    section.style.display = 'none';
   }
 }
 
@@ -6277,14 +6438,14 @@ function openModalAddUser() {
   document.getElementById('modal-add-user-title').textContent = 'Tambah User';
   document.getElementById('edit-user-uid').value = '';
   document.getElementById('new-user-nama').value = '';
-  document.getElementById('new-user-email').value = '';
-  document.getElementById('new-user-email').disabled = false;
+  document.getElementById('new-user-username').value = '';
+  document.getElementById('new-user-username').disabled = false;
   document.getElementById('new-user-password').value = '';
   document.getElementById('new-user-password2').value = '';
   document.getElementById('new-user-role').value = 'staff';
   document.getElementById('new-user-toko').value = 'harmonis_sentral';
   document.getElementById('new-user-password-row').style.display = '';
-  document.getElementById('new-user-email-hint').textContent = 'Email untuk login';
+  document.getElementById('new-user-username-hint').textContent = 'Username untuk login (tidak bisa diubah)';
   document.getElementById('modal-add-user').classList.add('show');
 }
 
@@ -6294,33 +6455,34 @@ function openEditUser(uid) {
   document.getElementById('modal-add-user-title').textContent = 'Edit User — ' + u.nama;
   document.getElementById('edit-user-uid').value = uid;
   document.getElementById('new-user-nama').value = u.nama || '';
-  document.getElementById('new-user-email').value = u.email || '';
-  document.getElementById('new-user-email').disabled = true;
+  const uname = u.username || u.email.replace('@harmoni.app','').split('@')[0];
+  document.getElementById('new-user-username').value = uname;
+  document.getElementById('new-user-username').disabled = true;
   document.getElementById('new-user-role').value = u.role || 'staff';
   document.getElementById('new-user-toko').value = u.toko || 'harmonis_sentral';
   document.getElementById('new-user-password-row').style.display = 'none';
-  document.getElementById('new-user-email-hint').textContent = 'Email tidak bisa diubah';
+  document.getElementById('new-user-username-hint').textContent = 'Username tidak bisa diubah';
   document.getElementById('modal-add-user').classList.add('show');
 }
 
 async function saveUser() {
-  const uid = document.getElementById('edit-user-uid').value;
-  const nama  = document.getElementById('new-user-nama').value.trim();
-  const email = document.getElementById('new-user-email').value.trim();
-  const role  = document.getElementById('new-user-role').value;
-  const toko  = document.getElementById('new-user-toko').value;
-  const pw    = document.getElementById('new-user-password').value;
-  const pw2   = document.getElementById('new-user-password2').value;
+  const uid      = document.getElementById('edit-user-uid').value;
+  const nama     = document.getElementById('new-user-nama').value.trim();
+  const username = document.getElementById('new-user-username').value.trim().toLowerCase();
+  const role     = document.getElementById('new-user-role').value;
+  const toko     = document.getElementById('new-user-toko').value;
+  const pw       = document.getElementById('new-user-password').value;
+  const pw2      = document.getElementById('new-user-password2').value;
   if (!nama) { alert('Nama wajib diisi.'); return; }
   const btn = document.getElementById('btn-save-user');
   btn.disabled = true; btn.textContent = 'Menyimpan...';
   try {
     if (!uid) {
-      // Create new user
-      if (!email) { alert('Email wajib diisi.'); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
+      if (!username) { alert('Username wajib diisi.'); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
+      if (!/^[a-z0-9_]+$/.test(username)) { alert('Username hanya boleh huruf kecil, angka, dan underscore.'); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
       if (pw.length < 6) { alert('Password minimal 6 karakter.'); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
       if (pw !== pw2) { alert('Konfirmasi password tidak sama.'); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
-      // Use Admin SDK isn't available client-side; use Firebase REST API
+      const email = usernameToEmail(username);
       const resp = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
@@ -6328,10 +6490,8 @@ async function saveUser() {
       );
       const data = await resp.json();
       if (data.error) { alert('Gagal buat akun: ' + data.error.message); btn.disabled=false; btn.textContent='💾 Simpan User'; return; }
-      // Save user profile
-      await firestore.collection('users').doc(data.localId).set({ uid:data.localId, email, nama, role, toko });
+      await firestore.collection('users').doc(data.localId).set({ uid:data.localId, username, email, nama, role, toko });
     } else {
-      // Update existing
       await firestore.collection('users').doc(uid).update({ nama, role, toko });
     }
     closeModal('modal-add-user');
@@ -6340,6 +6500,68 @@ async function saveUser() {
     alert('Error: ' + e.message);
   }
   btn.disabled = false; btn.textContent = '💾 Simpan User';
+}
+
+function openApproveUser(pendingId) {
+  const tbody = document.getElementById('tbody-pending-users');
+  const row = [...tbody.querySelectorAll('tr')].find(r => r.querySelector(`[onclick*="${pendingId}"]`));
+  const cells = row ? row.querySelectorAll('td') : null;
+  document.getElementById('approve-pending-id').value = pendingId;
+  if (cells) {
+    document.getElementById('approve-user-info').innerHTML =
+      `<strong>Username:</strong> ${cells[1].textContent} &nbsp;|&nbsp; <strong>Nama:</strong> ${cells[2].textContent}`;
+    const tokoVal = cells[3].textContent.replace('🏪 ','').trim();
+    const tokoKey = tokoVal === 'Harmonis Sentral' ? 'harmonis_sentral' : 'harmoni_indonesia';
+    document.getElementById('approve-toko').value = tokoKey;
+  }
+  document.getElementById('approve-role').value = 'staff';
+  document.getElementById('approve-password').value = '';
+  document.getElementById('approve-password2').value = '';
+  document.getElementById('modal-approve-user').classList.add('show');
+}
+
+async function doApproveUser() {
+  const pendingId = document.getElementById('approve-pending-id').value;
+  const role      = document.getElementById('approve-role').value;
+  const toko      = document.getElementById('approve-toko').value;
+  const pw        = document.getElementById('approve-password').value;
+  const pw2       = document.getElementById('approve-password2').value;
+  if (pw.length < 6) { alert('Password minimal 6 karakter.'); return; }
+  if (pw !== pw2)    { alert('Konfirmasi password tidak sama.'); return; }
+  const btn = document.getElementById('btn-approve-user');
+  btn.disabled = true; btn.textContent = 'Memproses...';
+  try {
+    const pendingDoc = await firestore.collection('pendingUsers').doc(pendingId).get();
+    if (!pendingDoc.exists) { alert('Data tidak ditemukan.'); btn.disabled=false; btn.textContent='✅ Setujui & Buat Akun'; return; }
+    const p = pendingDoc.data();
+    const email = usernameToEmail(p.username);
+    const resp = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email, password:pw, returnSecureToken:true}) }
+    );
+    const data = await resp.json();
+    if (data.error) { alert('Gagal buat akun: ' + data.error.message); btn.disabled=false; btn.textContent='✅ Setujui & Buat Akun'; return; }
+    await firestore.collection('users').doc(data.localId).set({ uid:data.localId, username:p.username, email, nama:p.nama, role, toko });
+    await firestore.collection('pendingUsers').doc(pendingId).delete();
+    closeModal('modal-approve-user');
+    renderUsers();
+    showToast(`Akun ${p.username} berhasil dibuat!`);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '✅ Setujui & Buat Akun';
+}
+
+async function tolakPendingUser(pendingId, username) {
+  if (!confirm(`Tolak permintaan pendaftaran dari "${username}"?`)) return;
+  try {
+    await firestore.collection('pendingUsers').doc(pendingId).delete();
+    renderUsers();
+    showToast(`Permintaan ${username} ditolak.`);
+  } catch(e) {
+    alert('Gagal: ' + e.message);
+  }
 }
 
 async function hapusUser(uid, nama) {
