@@ -1622,8 +1622,19 @@ body.dark .page-title { color: #E5E7EB; }
       </div>
     </div>
     <div id="setoran-items-container"></div>
-    <div style="margin-top:12px; padding:12px; background:var(--green-bg); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-      <strong>Total Setoran:</strong>
+
+    <!-- BARANG LUAR ORDER -->
+    <div style="margin-top:16px; border-top:2px dashed var(--border); padding-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-weight:700; color:var(--yellow); font-size:13px;">⚠️ Barang Luar Order / Kelebihan</div>
+        <button type="button" class="btn btn-sm btn-warning" onclick="tambahBariLuarOrder()">+ Tambah Baris</button>
+      </div>
+      <div id="luar-order-container" style="font-size:12px; color:var(--gray);">Belum ada barang luar order.</div>
+      <div id="luar-order-summary" style="display:none; font-size:12px; font-weight:600; color:var(--yellow); margin-top:8px; padding:8px 12px; background:var(--yellow-bg); border-radius:6px;"></div>
+    </div>
+
+    <div style="margin-top:14px; padding:12px; background:var(--green-bg); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+      <strong>Total Setoran (dalam order):</strong>
       <span id="setoran-total-summary" style="font-weight:bold; color:var(--green-dark);">0 pcs — Rp 0</span>
     </div>
     <div class="modal-footer">
@@ -5870,12 +5881,16 @@ function renderSesi() {
     const produkSet = [...new Set(orders.map(o => o.produk))];
     const produkBadges = produkSet.map(n => `<span class="badge badge-gray" style="font-size:10px;">${n}</span>`).join(' ');
 
+    // Kumpulkan semua extra items dari sesi ini
+    const allExtraItems = setoranList.flatMap(st => (st.extraItems || []).map(ei => ({ ...ei, tanggal: st.tanggal })));
+    const adaLuarOrder = allExtraItems.length > 0;
+
     const setoranRows = setoranList.map(st => `
       <tr style="font-size:12px;">
         <td>${st.tanggal}</td>
         <td class="td-right">${st.totalPcs} pcs</td>
         <td class="td-right num">${rp(st.totalNilai)}</td>
-        <td style="color:#666;">${st.catatan || '—'}</td>
+        <td style="color:#666;">${st.catatan || '—'}${st.adaLuarOrder ? ' <span style="background:var(--yellow-bg);color:var(--yellow);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">+LUAR ORDER</span>' : ''}</td>
         <td><button class="btn btn-danger btn-sm" onclick="hapusSetoran(${st.id},${sesi.id})">✕</button></td>
       </tr>`).join('');
 
@@ -5954,6 +5969,41 @@ function renderSesi() {
           </table>` : '<div style="color:#bbb; font-size:12px;">Belum ada pengambilan ditag ke sesi ini</div>'}
         </div>
       </div>
+
+      <!-- ===== LAPORAN BARANG LUAR ORDER ===== -->
+      ${adaLuarOrder ? `
+      <div style="margin-top:14px; padding:14px; background:var(--yellow-bg); border-radius:8px; border-left:4px solid var(--yellow);">
+        <div style="font-weight:700; color:var(--yellow); margin-bottom:10px; font-size:13px;">⚠️ Laporan Barang Luar Order / Kelebihan</div>
+        <table style="width:100%; font-size:12px; border-collapse:collapse;">
+          <thead><tr>
+            <th style="padding:6px 8px; text-align:left;">Tanggal</th>
+            <th style="padding:6px 8px; text-align:left;">Produk</th>
+            <th style="padding:6px 8px; text-align:left;">Ukuran</th>
+            <th style="padding:6px 8px; text-align:right;">Qty</th>
+            <th style="padding:6px 8px; text-align:right;">Nilai</th>
+            <th style="padding:6px 8px; text-align:center;">Status</th>
+          </tr></thead>
+          <tbody>
+            ${allExtraItems.map(ei => `
+              <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+                <td style="padding:5px 8px;">${ei.tanggal}</td>
+                <td style="padding:5px 8px; font-weight:600;">${ei.produk}</td>
+                <td style="padding:5px 8px;">${ei.ukuran}</td>
+                <td style="padding:5px 8px; text-align:right;">${ei.qty} pcs</td>
+                <td style="padding:5px 8px; text-align:right;">${ei.harga > 0 ? rp(ei.total) : '—'}</td>
+                <td style="padding:5px 8px; text-align:center;">
+                  ${ei.status === 'diterima'
+                    ? '<span class="badge badge-green">✅ Diterima</span>'
+                    : '<span class="badge badge-yellow">↩️ Dikembalikan</span>'}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top:10px; display:flex; gap:16px; font-size:12px; font-weight:600;">
+          <span>✅ Total Diterima: ${allExtraItems.filter(e=>e.status==='diterima').reduce((s,e)=>s+e.qty,0)} pcs</span>
+          <span>↩️ Total Dikembalikan: ${allExtraItems.filter(e=>e.status==='dikembalikan').reduce((s,e)=>s+e.qty,0)} pcs</span>
+        </div>
+      </div>` : ''}
 
       ${sesi.status === 'selesai' && sesi.analisis ? `
       <!-- Analisis Final -->
@@ -6041,6 +6091,78 @@ function saveSesi() {
   renderSesi();
 }
 
+// ===== LUAR ORDER STATE =====
+let _luarOrderRows = [];
+let _luarOrderIdx = 0;
+
+function tambahBariLuarOrder() {
+  const idx = _luarOrderIdx++;
+  _luarOrderRows.push(idx);
+  renderLuarOrderRows();
+}
+
+function hapusBariLuarOrder(idx) {
+  _luarOrderRows = _luarOrderRows.filter(i => i !== idx);
+  renderLuarOrderRows();
+}
+
+function renderLuarOrderRows() {
+  const container = document.getElementById('luar-order-container');
+  if (!_luarOrderRows.length) {
+    container.innerHTML = '<div style="font-size:12px; color:var(--gray);">Belum ada barang luar order.</div>';
+    document.getElementById('luar-order-summary').style.display = 'none';
+    return;
+  }
+  container.innerHTML = `<table style="width:100%; font-size:12px; border-collapse:collapse;">
+    <thead><tr>
+      <th style="padding:6px 8px; text-align:left;">Produk</th>
+      <th style="padding:6px 8px; text-align:left; width:90px;">Ukuran</th>
+      <th style="padding:6px 8px; text-align:right; width:70px;">Qty</th>
+      <th style="padding:6px 8px; text-align:right; width:110px;">Harga/Pcs</th>
+      <th style="padding:6px 8px; width:150px;">Status</th>
+      <th style="width:30px;"></th>
+    </tr></thead>
+    <tbody>
+      ${_luarOrderRows.map(idx => `
+        <tr>
+          <td style="padding:4px;"><input type="text" id="lo-produk-${idx}" placeholder="Nama produk" style="width:100%; font-family:inherit;"></td>
+          <td style="padding:4px;"><input type="text" id="lo-ukuran-${idx}" placeholder="Ukuran" style="width:100%; font-family:inherit;"></td>
+          <td style="padding:4px;"><input type="number" id="lo-qty-${idx}" min="0" value="0" oninput="updateLuarOrderSummary()" style="text-align:right; width:100%; font-family:inherit;"></td>
+          <td style="padding:4px;"><input type="number" id="lo-harga-${idx}" min="0" value="0" oninput="updateLuarOrderSummary()" style="text-align:right; width:100%; font-family:inherit;"></td>
+          <td style="padding:4px;">
+            <select id="lo-status-${idx}" onchange="updateLuarOrderSummary()" style="width:100%; font-size:12px; font-family:inherit;">
+              <option value="diterima">✅ Diterima</option>
+              <option value="dikembalikan">↩️ Dikembalikan</option>
+            </select>
+          </td>
+          <td style="padding:4px; text-align:center;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="hapusBariLuarOrder(${idx})">✕</button>
+          </td>
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+  updateLuarOrderSummary();
+}
+
+function updateLuarOrderSummary() {
+  let totalDiterima = 0, totalDikembalikan = 0, nilaiDiterima = 0, nilaiDikembalikan = 0;
+  _luarOrderRows.forEach(idx => {
+    const qty   = parseInt(document.getElementById(`lo-qty-${idx}`)?.value) || 0;
+    const harga = parseFloat(document.getElementById(`lo-harga-${idx}`)?.value) || 0;
+    const status = document.getElementById(`lo-status-${idx}`)?.value || 'diterima';
+    if (status === 'diterima')     { totalDiterima    += qty; nilaiDiterima    += qty * harga; }
+    else                           { totalDikembalikan += qty; nilaiDikembalikan += qty * harga; }
+  });
+  const sumEl = document.getElementById('luar-order-summary');
+  if (_luarOrderRows.length) {
+    sumEl.style.display = 'block';
+    sumEl.innerHTML = `✅ Diterima: <strong>${totalDiterima} pcs (${rp(nilaiDiterima)})</strong>
+      &nbsp;·&nbsp; ↩️ Dikembalikan: <strong>${totalDikembalikan} pcs (${rp(nilaiDikembalikan)})</strong>`;
+  } else {
+    sumEl.style.display = 'none';
+  }
+}
+
 function openModalSetoran(sesiId) {
   const sesi = db.sesi.find(s => s.id === sesiId);
   if (!sesi) return;
@@ -6049,6 +6171,9 @@ function openModalSetoran(sesiId) {
   document.getElementById('setoran-tanggal').value = today();
   document.getElementById('setoran-catatan').value = '';
   document.getElementById('modal-setoran-nama').textContent = p ? p.nama : '';
+  // Reset luar order
+  _luarOrderRows = []; _luarOrderIdx = 0;
+  renderLuarOrderRows();
 
   // Build items from orders in sesi
   const orders = (sesi.orderIds || []).map(id => db.orders.find(o => o.id === id)).filter(Boolean);
@@ -6127,7 +6252,18 @@ function saveSetoran() {
     }
   });
 
-  if (!items.length) { alert('Isi qty setoran minimal 1 item.'); return; }
+  // Kumpulkan barang luar order
+  const extraItems = [];
+  _luarOrderRows.forEach(idx => {
+    const produk = document.getElementById(`lo-produk-${idx}`)?.value.trim();
+    const ukuran = document.getElementById(`lo-ukuran-${idx}`)?.value.trim() || '—';
+    const qty    = parseInt(document.getElementById(`lo-qty-${idx}`)?.value) || 0;
+    const harga  = parseFloat(document.getElementById(`lo-harga-${idx}`)?.value) || 0;
+    const status = document.getElementById(`lo-status-${idx}`)?.value || 'diterima';
+    if (produk && qty > 0) extraItems.push({ produk, ukuran, qty, harga, total: qty * harga, status });
+  });
+
+  if (!items.length && !extraItems.length) { alert('Isi qty setoran atau tambahkan barang luar order minimal 1 item.'); return; }
 
   db.setoran.push({
     id: db.nextSetoranId++,
@@ -6137,6 +6273,8 @@ function saveSetoran() {
     items,
     totalPcs,
     totalNilai,
+    extraItems,
+    adaLuarOrder: extraItems.length > 0,
     catatan: document.getElementById('setoran-catatan').value.trim(),
   });
   saveDB();
@@ -6166,14 +6304,22 @@ function hitungTotalSesi(sesiId) {
   const selisih = totalSetoran - totalTarget;
   const pctKesesuaian = totalTarget > 0 ? Math.round(totalSetoran / totalTarget * 100) : 0;
 
+  const allExtra = setoranList.flatMap(st => st.extraItems || []);
+  const extraDiterima     = allExtra.filter(e => e.status === 'diterima').reduce((s,e) => s+e.qty, 0);
+  const extraDikembalikan = allExtra.filter(e => e.status === 'dikembalikan').reduce((s,e) => s+e.qty, 0);
+  const extraInfo = allExtra.length
+    ? `\n\n⚠️ Barang Luar Order:\n  Diterima    : ${extraDiterima} pcs\n  Dikembalikan: ${extraDikembalikan} pcs`
+    : '';
+
   const msg = `Rekap Sesi — ${p ? p.nama : ''}:\n\n` +
     `Target     : ${totalTarget} pcs\n` +
     `Total Setor: ${totalSetoran} pcs\n` +
     `Selisih    : ${selisih > 0 ? '+' : ''}${selisih} pcs\n` +
     `Kesesuaian : ${pctKesesuaian}%\n\n` +
     `Nilai Setoran : ${rp(nilaiSetoran)}\n` +
-    `Nilai Kain    : ${rp(nilaiKain)}\n\n` +
-    `Tutup sesi ini sekarang?`;
+    `Nilai Kain    : ${rp(nilaiKain)}` +
+    extraInfo +
+    `\n\nTutup sesi ini sekarang?`;
 
   if (!confirm(msg)) return;
 
