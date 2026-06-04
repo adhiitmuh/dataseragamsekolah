@@ -36,7 +36,7 @@
 body { font-family: 'Raleway', Arial, sans-serif; background: #FAFAFA; display: flex; min-height: 100vh; font-size: 14px; color: #282828; }
 
 /* SIDEBAR */
-.sidebar { width: 220px; background: var(--green-dark); color: white; min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; }
+.sidebar { width: 220px; background: linear-gradient(175deg, #011F1E 0%, #023330 45%, #034543 100%); color: white; min-height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; }
 .sidebar-brand { padding: 22px 18px; border-bottom: 1px solid rgba(255,255,255,0.12); }
 .sidebar-brand .logo { font-size: 18px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: white; }
 .sidebar-brand .logo span { color: var(--brand-cream); }
@@ -58,14 +58,14 @@ body { font-family: 'Raleway', Arial, sans-serif; background: #FAFAFA; display: 
 .page-title { font-size: 22px; font-weight: bold; color: var(--green-dark); }
 
 /* CARDS */
-.card { background: white; border-radius: 8px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+.card { background: linear-gradient(160deg, #ffffff 0%, #f8fdfc 100%); border-radius: 10px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
 .card-title { font-size: 15px; font-weight: bold; color: var(--green-dark); border-bottom: 2px solid var(--green-light); padding-bottom: 8px; margin-bottom: 16px; }
 
 /* STAT CARDS */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: white; border-radius: 8px; padding: 18px 20px; box-shadow: var(--shadow); border-top: 4px solid var(--green-light); }
-.stat-card.danger { border-top-color: var(--red); }
-.stat-card.warning { border-top-color: var(--yellow); }
+.stat-card { background: linear-gradient(145deg, #ffffff 0%, #f0faf9 100%); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); border-top: 4px solid var(--green-light); }
+.stat-card.danger { border-top-color: var(--red); background: linear-gradient(145deg, #ffffff 0%, #fff5f5 100%); }
+.stat-card.warning { border-top-color: var(--yellow); background: linear-gradient(145deg, #ffffff 0%, #fffbf0 100%); }
 .stat-num { font-size: 26px; font-weight: bold; color: var(--green-dark); }
 .stat-card.danger .stat-num { color: var(--red); }
 .stat-card.warning .stat-num { color: var(--yellow); }
@@ -74,9 +74,9 @@ body { font-family: 'Raleway', Arial, sans-serif; background: #FAFAFA; display: 
 /* TABLES */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th { background: var(--green-dark); color: white; padding: 10px 12px; text-align: left; font-size: 13px; white-space: nowrap; }
+th { background: linear-gradient(135deg, #023330 0%, #034543 100%); color: white; padding: 10px 12px; text-align: left; font-size: 13px; white-space: nowrap; }
 td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-tr:hover td { background: #FAFAFA; }
+tr:hover td { background: #f5faf9; }
 .td-right { text-align: right; }
 .td-center { text-align: center; }
 
@@ -93,12 +93,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-light); }
 .hint { font-size: 11px; color: #888; margin-top: 3px; }
 
 /* BUTTONS */
-.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: filter 0.15s; }
-.btn:hover { filter: brightness(0.9); }
-.btn-primary { background: var(--green); color: white; }
-.btn-danger { background: var(--red); color: white; }
-.btn-secondary { background: var(--gray); color: white; }
-.btn-warning { background: var(--yellow); color: white; }
+.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: filter 0.15s, box-shadow 0.15s; }
+.btn:hover { filter: brightness(0.92); box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+.btn-primary { background: linear-gradient(135deg, #034543 0%, #0A7A77 100%); color: white; }
+.btn-danger { background: linear-gradient(135deg, #B91C1C 0%, #C62828 100%); color: white; }
+.btn-secondary { background: linear-gradient(135deg, #4B5563 0%, #616161 100%); color: white; }
+.btn-warning { background: linear-gradient(135deg, #92400E 0%, #B45309 100%); color: white; }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn-outline { background: transparent; border: 1px solid var(--green); color: var(--green); }
 
@@ -157,13 +157,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--green-light); }
 
 /* LOGIN OVERLAY */
 #login-overlay {
-  position: fixed; inset: 0; background: linear-gradient(135deg, #012524 0%, #034543 60%, #0A7A77 100%);
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #010F0E 0%, #012524 30%, #034543 65%, #0A7A77 100%);
   z-index: 9999; display: flex; align-items: center; justify-content: center;
 }
 #login-overlay.hidden { display: none; }
 .login-box {
-  background: var(--brand-white); border-radius: 12px; padding: 40px 36px; width: 380px; max-width: 95vw;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3); border-top: 4px solid var(--brand-cream);
+  background: linear-gradient(160deg, #ffffff 0%, #f5faf9 100%);
+  border-radius: 16px; padding: 40px 36px; width: 380px; max-width: 95vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.1);
+  border-top: 4px solid var(--brand-cream);
 }
 .login-logo { text-align: center; margin-bottom: 32px; }
 .login-logo .logo-icon { font-size: 40px; display: block; margin-bottom: 4px; }
@@ -274,10 +277,10 @@ body.dark {
 }
 
 /* Cards & surfaces */
-body.dark .card,
-body.dark .stat-card { background: #1E293B; }
-body.dark .modal-box { background: #1E293B; }
-body.dark .login-box { background: #1E293B; border-top-color: var(--green-light); }
+body.dark .card { background: linear-gradient(160deg, #1E293B 0%, #1A2535 100%); }
+body.dark .stat-card { background: linear-gradient(145deg, #1E293B 0%, #172030 100%); }
+body.dark .modal-box { background: linear-gradient(160deg, #1E293B 0%, #1A2535 100%); }
+body.dark .login-box { background: linear-gradient(160deg, #1E293B 0%, #172030 100%); border-top-color: var(--green-light); }
 body.dark .login-logo h1 { color: #E5E7EB; }
 body.dark .login-logo .tagline { color: var(--green-light); }
 body.dark .login-logo p { color: #6B7280; }
