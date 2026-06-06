@@ -3381,6 +3381,31 @@ function hideLoading() {
   document.getElementById('loading-overlay').classList.add('hidden');
 }
 
+function normalizeToko(raw) {
+  if (!raw) return 'harmonis_sentral';
+  const s = raw.toLowerCase().replace(/[\s-]+/g, '_');
+  if (s === 'harmoni_indonesia' || s.includes('harmoni_ind')) return 'harmoni_indonesia';
+  return 'harmonis_sentral';
+}
+
+async function migrateTokoPath(oldToko, newToko) {
+  try {
+    const oldData = await firestore.collection('toko').doc(oldToko).collection('main').doc('data').get();
+    if (!oldData.exists) return;
+    const newData = await firestore.collection('toko').doc(newToko).collection('main').doc('data').get();
+    if (!newData.exists || !(newData.data()?.orders?.length)) {
+      await firestore.collection('toko').doc(newToko).collection('main').doc('data').set(oldData.data());
+      const oldCfg = await firestore.collection('toko').doc(oldToko).collection('main').doc('config').get();
+      if (oldCfg.exists) {
+        await firestore.collection('toko').doc(newToko).collection('main').doc('config').set(oldCfg.data());
+      }
+    }
+    if (auth.currentUser) {
+      await authDb.collection('users').doc(auth.currentUser.uid).update({ toko: newToko });
+    }
+  } catch(e) { console.warn('Toko path migration failed:', e); }
+}
+
 async function loadUserData(uid) {
   const doc = await authDb.collection('users').doc(uid).get();
   if (!doc.exists) return null;
@@ -3388,13 +3413,15 @@ async function loadUserData(uid) {
   if (!data.aktif) return null;
   if (data.role === 'owner') {
     data.role = 'admin';
-    data.toko = data.toko || 'harmonis_sentral';
+    data._rawToko = data.toko;
+    data.toko = normalizeToko(data.toko);
     return data;
   }
   const appAccess = data.apps?.sistem_penjahit;
   if (!appAccess?.akses) return null;
   data.role = appAccess.role || 'staff';
-  data.toko = appAccess.toko || 'harmonis_sentral';
+  data._rawToko = appAccess.toko;
+  data.toko = normalizeToko(appAccess.toko);
   return data;
 }
 
@@ -3449,6 +3476,10 @@ auth.onAuthStateChanged(async (user) => {
     }
     currentUserData = userData;
     currentToko = userData.toko || 'harmonis_sentral';
+    if (userData._rawToko && userData._rawToko !== currentToko) {
+      showLoading('Migrasi data toko...');
+      await migrateTokoPath(userData._rawToko, currentToko);
+    }
     await loadFromFirestore();
     applyRoleUI(userData);
     initDropdowns();
