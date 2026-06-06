@@ -3693,8 +3693,11 @@ function renderPenjahit() {
     return;
   }
   tbody.innerHTML = db.penjahit.map((p, i) => {
-    const orders = db.orders.filter(o => o.penjahitId == p.id);
-    const totalBayar = orders.reduce((s, o) => s + (o.qty * o.harga), 0);
+    const setorans = (db.setoran || []).filter(s => s.penjahitId == p.id);
+    const totalBayar = setorans.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
     const ambs = db.pengambilans.filter(a => a.penjahitId == p.id);
     const totalAmb = ambs.reduce((s,a) => s + a.grandTotal, 0);
     const produkBadges = (p.produkList||[]).map(n =>

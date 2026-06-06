@@ -3700,8 +3700,11 @@ function renderPenjahit() {
     return;
   }
   tbody.innerHTML = db.penjahit.map((p, i) => {
-    const orders = db.orders.filter(o => o.penjahitId == p.id);
-    const totalBayar = orders.reduce((s, o) => s + (o.qty * o.harga), 0);
+    const setorans = (db.setoran || []).filter(s => s.penjahitId == p.id);
+    const totalBayar = setorans.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
     const ambs = db.pengambilans.filter(a => a.penjahitId == p.id);
     const totalAmb = ambs.reduce((s,a) => s + a.grandTotal, 0);
     const produkBadges = (p.produkList||[]).map(n =>
@@ -4438,16 +4441,20 @@ function renderSimulator() {
 //  LAPORAN
 // =============================================
 function renderLaporan() {
-  // Populate filters
+  // Populate filters — save values to preserve selection after innerHTML rebuild
+  const selBulan = document.getElementById('laporan-bulan');
+  const selPenjahit = document.getElementById('laporan-penjahit');
+  const prevB = selBulan.value, prevP = selPenjahit.value;
+
   const bulanSet = new Set(db.orders.map(o => bulanStr(o.tanggal)));
   const bulanArr = [...bulanSet].sort().reverse();
-  const selBulan = document.getElementById('laporan-bulan');
   selBulan.innerHTML = '<option value="">— Semua Periode —</option>' +
     bulanArr.map(b => `<option value="${b}">${namabulan(b)}</option>`).join('');
-
-  const selPenjahit = document.getElementById('laporan-penjahit');
   selPenjahit.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
+
+  if (prevB) selBulan.value = prevB;
+  if (prevP) selPenjahit.value = prevP;
 
   const fB = selBulan.value;
   const fP = selPenjahit.value;
