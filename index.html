@@ -3391,9 +3391,9 @@ async function loadUserData(uid) {
   const doc = await authDb.collection('users').doc(uid).get();
   if (!doc.exists) return null;
   const data = doc.data();
-  // mapping role portal ke role app
+  if (!data.aktif) return null;
   if (data.role === 'owner') data.role = 'admin';
-  if (data.toko === 'semua') data.toko = 'harmonis_sentral'; // default toko untuk owner
+  if (data.toko === 'semua') data.toko = 'harmonis_sentral';
   return data;
 }
 
@@ -3442,9 +3442,8 @@ auth.onAuthStateChanged(async (user) => {
     let userData = await loadUserData(user.uid);
     if (!userData) {
       hideLoading();
-      showLoginError('Akun tidak terdaftar di portal. Hubungi admin.');
+      showLoginError('Akun tidak ditemukan atau belum diaktifkan. Hubungi admin.');
       loginOverlay.classList.remove('hidden');
-      await auth.signOut();
       return;
     }
     currentUserData = userData;
