@@ -4398,16 +4398,21 @@ function renderSimulator() {
 //  LAPORAN
 // =============================================
 function renderLaporan() {
-  // Populate filters
+  // Populate filters — simpan nilai dulu sebelum rebuild agar filter tidak reset
+  const selBulan = document.getElementById('laporan-bulan');
+  const selPenjahit = document.getElementById('laporan-penjahit');
+  const prevBulan = selBulan.value;
+  const prevPenjahit = selPenjahit.value;
+
   const bulanSet = new Set(db.orders.map(o => bulanStr(o.tanggal)));
   const bulanArr = [...bulanSet].sort().reverse();
-  const selBulan = document.getElementById('laporan-bulan');
   selBulan.innerHTML = '<option value="">— Semua Periode —</option>' +
     bulanArr.map(b => `<option value="${b}">${namabulan(b)}</option>`).join('');
+  if (prevBulan) selBulan.value = prevBulan;
 
-  const selPenjahit = document.getElementById('laporan-penjahit');
   selPenjahit.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
+  if (prevPenjahit) selPenjahit.value = prevPenjahit;
 
   const fB = selBulan.value;
   const fP = selPenjahit.value;
