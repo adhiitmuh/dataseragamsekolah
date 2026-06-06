@@ -599,10 +599,10 @@ body.dark .page-title { color: #E5E7EB; }
       <h1 class="page-title">💰 Laporan Penghasilan Penjahit</h1>
     </div>
     <div class="filter-bar">
-      <select id="laporan-bulan" onchange="renderLaporan()">
+      <select id="laporan-bulan" onchange="onLaporanFilterChange()">
         <option value="">— Semua Periode —</option>
       </select>
-      <select id="laporan-penjahit" onchange="renderLaporan()">
+      <select id="laporan-penjahit" onchange="onLaporanFilterChange()">
         <option value="">— Semua Penjahit —</option>
       </select>
     </div>
@@ -4414,8 +4414,14 @@ function renderLaporan() {
   if (fB) setorans = setorans.filter(s => bulanStr(s.tanggal) === fB);
   if (fP) setorans = setorans.filter(s => s.penjahitId == fP);
 
-  const totalBayar = setorans.reduce((s,st) => s + (st.totalNilai||0), 0);
-  const totalPcs   = setorans.reduce((s,st) => s + (st.totalPcs||0), 0);
+  const totalBayar = setorans.reduce((s,st) => {
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+    return s + (st.totalNilai||0) + extra;
+  }, 0);
+  const totalPcs = setorans.reduce((s,st) => {
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+    return s + (st.totalPcs||0) + extra;
+  }, 0);
 
   document.getElementById('laporan-summary').innerHTML = `
     <div class="stat-card"><div class="stat-num">${setorans.length}</div><div class="stat-label">Total Setoran</div></div>
@@ -4428,8 +4434,14 @@ function renderLaporan() {
   db.penjahit.forEach(p => {
     const ps = setorans.filter(s => s.penjahitId == p.id);
     if (!ps.length) return;
-    const totalB   = ps.reduce((s,st) => s + (st.totalNilai||0), 0);
-    const totalPcs_ = ps.reduce((s,st) => s + (st.totalPcs||0), 0);
+    const totalB = ps.reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
+    const totalPcs_ = ps.reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+      return s + (st.totalPcs||0) + extra;
+    }, 0);
     penjahitMap[p.id] = { nama: p.nama, id: p.id, nSetoran: ps.length, totalPcs: totalPcs_, totalBayar: totalB };
   });
 
@@ -4462,8 +4474,8 @@ function showLaporanDetail(penjahitId, nama) {
   document.getElementById('laporan-detail-title').textContent = `Detail Setoran — ${nama}`;
 
   const tbody = document.getElementById('tbody-laporan-detail');
-  tbody.innerHTML = setorans.flatMap(st =>
-    (st.items||[]).map(item => `<tr>
+  tbody.innerHTML = setorans.flatMap(st => {
+    const mainRows = (st.items||[]).map(item => `<tr>
       <td>${st.tanggal}</td>
       <td>${item.produk}</td>
       <td>${item.ukuran}</td>
@@ -4472,8 +4484,19 @@ function showLaporanDetail(penjahitId, nama) {
       <td class="td-right num">${rp(item.total||item.qty*item.harga)}</td>
       <td class="td-right num admin-col" style="color:var(--gray);">—</td>
       <td class="td-center admin-col">—</td>
-    </tr>`)
-  ).join('') || '<tr><td colspan="8" style="text-align:center;color:#bbb;padding:12px;">Belum ada setoran</td></tr>';
+    </tr>`);
+    const extraRows = (st.extraItems||[]).map(ei => `<tr style="background:var(--yellow-bg);">
+      <td>${st.tanggal}</td>
+      <td>${ei.produk} <span style="background:var(--yellow-bg);color:var(--yellow);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">LUAR ORDER</span></td>
+      <td>${ei.ukuran}</td>
+      <td class="td-right">${ei.qty}</td>
+      <td class="td-right num">${ei.harga > 0 ? rp(ei.harga) : '—'}</td>
+      <td class="td-right num">${ei.harga > 0 ? rp(ei.total||ei.qty*ei.harga) : '—'}</td>
+      <td class="td-right num admin-col" style="color:var(--gray);">${ei.status === 'diterima' ? '✅ Diterima' : '↩️ Kembali'}</td>
+      <td class="td-center admin-col">—</td>
+    </tr>`);
+    return [...mainRows, ...extraRows];
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:#bbb;padding:12px;">Belum ada setoran</td></tr>';
 
   document.getElementById('laporan-detail-card').scrollIntoView({behavior:'smooth'});
 }
@@ -4492,6 +4515,13 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 // =============================================
 //  LAPORAN TABS + PEMBAYARAN
 // =============================================
+function onLaporanFilterChange() {
+  renderLaporan();
+  if (document.getElementById('tab-laporan-bayar').style.display !== 'none') {
+    renderPembayaranTab();
+  }
+}
+
 function switchLaporanTab(tab) {
   ['rekap','bayar'].forEach(t => {
     document.getElementById('tab-laporan-' + t).style.display = t === tab ? '' : 'none';
@@ -4513,7 +4543,10 @@ function renderPembayaranTab() {
   const html = penjahitList.map(p => {
     // Penghasilan dari setoran aktual
     const setorans = (db.setoran || []).filter(s => s.penjahitId == p.id && (!fB || bulanStr(s.tanggal) === fB));
-    const totalOrder = setorans.reduce((s,st) => s + (st.totalNilai||0), 0);
+    const totalOrder = setorans.reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
     const totalBahan = (db.pengambilans || [])
       .filter(a => a.penjahitId == p.id && (!fB || bulanStr(a.tanggal) === fB))
       .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -5839,8 +5872,14 @@ function renderSesi() {
     const orders = (sesi.orderIds || []).map(id => db.orders.find(o => o.id === id)).filter(Boolean);
     const totalTarget = orders.reduce((s, o) => s + o.qty, 0);
     const setoranList = (db.setoran || []).filter(st => st.sesiId === sesi.id);
-    const totalSetoran = setoranList.reduce((s, st) => s + st.totalPcs, 0);
-    const nilaiSetoran = setoranList.reduce((s, st) => s + st.totalNilai, 0);
+    const totalSetoran = setoranList.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+      return s + st.totalPcs + extra;
+    }, 0);
+    const nilaiSetoran = setoranList.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + st.totalNilai + extra;
+    }, 0);
     const pengambilanList = (db.pengambilans || []).filter(a => a.sesiId === sesi.id);
     const nilaiKain = pengambilanList.reduce((s, a) => s + (a.grandTotal || 0), 0);
     const pct = totalTarget > 0 ? Math.min(100, Math.round(totalSetoran / totalTarget * 100)) : 0;
@@ -6325,8 +6364,14 @@ function hitungTotalSesi(sesiId) {
   const orders = (sesi.orderIds || []).map(id => db.orders.find(o => o.id === id)).filter(Boolean);
   const totalTarget = orders.reduce((s, o) => s + o.qty, 0);
   const setoranList = (db.setoran || []).filter(st => st.sesiId === sesiId);
-  const totalSetoran = setoranList.reduce((s, st) => s + st.totalPcs, 0);
-  const nilaiSetoran = setoranList.reduce((s, st) => s + st.totalNilai, 0);
+  const totalSetoran = setoranList.reduce((s, st) => {
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+    return s + st.totalPcs + extra;
+  }, 0);
+  const nilaiSetoran = setoranList.reduce((s, st) => {
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+    return s + st.totalNilai + extra;
+  }, 0);
   const pengambilanList = (db.pengambilans || []).filter(a => a.sesiId === sesiId);
   const nilaiKain = pengambilanList.reduce((s, a) => s + (a.grandTotal || 0), 0);
   const selisih = totalSetoran - totalTarget;
