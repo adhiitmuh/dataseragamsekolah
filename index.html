@@ -6142,20 +6142,29 @@ function renderLuarOrderRows() {
     document.getElementById('luar-order-summary').style.display = 'none';
     return;
   }
+  const produkOptions = `<option value="">— Pilih —</option>` + PRODUK_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
   container.innerHTML = `<table style="width:100%; font-size:12px; border-collapse:collapse;">
     <thead><tr>
       <th style="padding:6px 8px; text-align:left;">Produk</th>
-      <th style="padding:6px 8px; text-align:left; width:90px;">Ukuran</th>
-      <th style="padding:6px 8px; text-align:right; width:70px;">Qty</th>
+      <th style="padding:6px 8px; text-align:left; width:100px;">Ukuran</th>
+      <th style="padding:6px 8px; text-align:right; width:60px;">Qty</th>
       <th style="padding:6px 8px; text-align:right; width:110px;">Harga/Pcs</th>
-      <th style="padding:6px 8px; width:150px;">Status</th>
+      <th style="padding:6px 8px; width:140px;">Status</th>
       <th style="width:30px;"></th>
     </tr></thead>
     <tbody>
       ${_luarOrderRows.map(idx => `
         <tr>
-          <td style="padding:4px;"><input type="text" id="lo-produk-${idx}" placeholder="Nama produk" style="width:100%; font-family:inherit;"></td>
-          <td style="padding:4px;"><input type="text" id="lo-ukuran-${idx}" placeholder="Ukuran" style="width:100%; font-family:inherit;"></td>
+          <td style="padding:4px;">
+            <select id="lo-produk-${idx}" onchange="updateLuarOrderUkuran(${idx})" style="width:100%; font-size:12px; font-family:inherit;">
+              ${produkOptions}
+            </select>
+          </td>
+          <td style="padding:4px;">
+            <select id="lo-ukuran-${idx}" onchange="autoFillLuarOrderHarga(${idx})" style="width:100%; font-size:12px; font-family:inherit;">
+              <option value="">—</option>
+            </select>
+          </td>
           <td style="padding:4px;"><input type="number" id="lo-qty-${idx}" min="0" value="0" oninput="updateLuarOrderSummary()" style="text-align:right; width:100%; font-family:inherit;"></td>
           <td style="padding:4px;"><input type="number" id="lo-harga-${idx}" min="0" value="0" oninput="updateLuarOrderSummary()" style="text-align:right; width:100%; font-family:inherit;"></td>
           <td style="padding:4px;">
@@ -6190,6 +6199,29 @@ function updateLuarOrderSummary() {
   } else {
     sumEl.style.display = 'none';
   }
+}
+
+function updateLuarOrderUkuran(idx) {
+  const produk = document.getElementById(`lo-produk-${idx}`)?.value;
+  const ukuranSel = document.getElementById(`lo-ukuran-${idx}`);
+  if (!ukuranSel) return;
+  const sizes = produk && PRODUK_DATA[produk]?.sizes ? PRODUK_DATA[produk].sizes : [];
+  ukuranSel.innerHTML = `<option value="">— Pilih —</option>` + sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
+  document.getElementById(`lo-harga-${idx}`).value = 0;
+  updateLuarOrderSummary();
+}
+
+function autoFillLuarOrderHarga(idx) {
+  const produk  = document.getElementById(`lo-produk-${idx}`)?.value;
+  const ukuran  = document.getElementById(`lo-ukuran-${idx}`)?.value;
+  const hargaEl = document.getElementById(`lo-harga-${idx}`);
+  if (!produk || !ukuran || !hargaEl) return;
+  const sesiId     = parseInt(document.getElementById('setoran-sesi-id').value);
+  const sesi       = db.sesi.find(s => s.id === sesiId);
+  const penjahitId = sesi?.penjahitId;
+  const ref = getHargaReferensi(produk, ukuran, penjahitId);
+  if (ref) hargaEl.value = ref.modal;
+  updateLuarOrderSummary();
 }
 
 function openModalSetoran(sesiId) {
