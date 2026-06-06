@@ -3392,8 +3392,14 @@ async function loadUserData(uid) {
   if (!doc.exists) return null;
   const data = doc.data();
   if (!data.aktif) return null;
-  if (data.role === 'owner') data.role = 'admin';
-  if (data.toko === 'semua') data.toko = 'harmonis_sentral';
+  if (data.role === 'owner') {
+    data.role = 'admin';
+    data.toko = data.toko || 'harmonis_sentral';
+    return data;
+  }
+  const appAccess = data.apps?.sistem_penjahit;
+  if (!appAccess?.akses) return null;
+  data.role = appAccess.role || 'staff';
   return data;
 }
 
