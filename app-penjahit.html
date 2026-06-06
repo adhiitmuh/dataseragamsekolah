@@ -3700,6 +3700,7 @@ function renderPenjahit() {
     return;
   }
   tbody.innerHTML = db.penjahit.map((p, i) => {
+    const orders = db.orders.filter(o => o.penjahitId == p.id);
     const setorans = (db.setoran || []).filter(s => s.penjahitId == p.id);
     const totalBayar = setorans.reduce((s, st) => {
       const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
