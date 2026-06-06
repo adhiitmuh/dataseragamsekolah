@@ -392,6 +392,7 @@ body.dark .page-title { color: #E5E7EB; }
       <span id="dark-toggle-label">🌙 Dark Mode</span>
       <span class="toggle-track"><span class="toggle-thumb"></span></span>
     </button>
+    <button class="logout-btn admin-only" id="btn-migrasi" onclick="migrasiData()" style="background:rgba(234,179,8,.15);border-color:rgba(234,179,8,.4);color:#fbbf24;margin-bottom:4px">🔄 Migrasi Data</button>
     <button class="logout-btn" onclick="doLogout()">🚪 Keluar</button>
     <div class="footer-version">v1.0 · Harmoni 2026</div>
   </div>
@@ -2882,7 +2883,7 @@ const firebaseConfig = {
   appId: "1:359180403760:web:bacf158b0956a3464519f5"
 };
 firebase.initializeApp(firebaseConfig);
-const firestore = firebase.firestore(); // data tetap di project lama
+const oldFirestore = firebase.firestore(); // lama — hanya untuk migrasi data
 
 // Auth terpusat via harmoni-indonesia
 const harmoniConfig = {
@@ -2896,6 +2897,7 @@ const harmoniConfig = {
 const harmoniApp = firebase.initializeApp(harmoniConfig, 'harmoni-auth');
 const auth = harmoniApp.auth();
 const authDb = harmoniApp.firestore();
+const firestore = authDb; // data pindah ke harmoni-indonesia (aman, auth-protected)
 
 // ===== DARK MODE =====
 function toggleDarkMode() {
@@ -3400,6 +3402,7 @@ async function loadUserData(uid) {
   const appAccess = data.apps?.sistem_penjahit;
   if (!appAccess?.akses) return null;
   data.role = appAccess.role || 'staff';
+  data.toko = appAccess.toko || 'harmonis_sentral';
   return data;
 }
 
@@ -6997,6 +7000,41 @@ function initDropdowns() {
     PRODUK_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
 }
 // App is initialized by auth.onAuthStateChanged above — no manual init() call needed.
+
+// ── MIGRASI DATA (jalankan sekali oleh owner) ──
+async function migrasiData() {
+  if (!currentUserData || currentUserData.role !== 'admin') return;
+  const btn = document.getElementById('btn-migrasi');
+  if (btn) { btn.disabled = true; btn.textContent = 'Migrasi berjalan…'; }
+  const log = (msg) => { if (btn) btn.title = msg; console.log('[MIGRASI]', msg); };
+  try {
+    const tokoList = ['harmonis_sentral', 'harmoni_indonesia'];
+    // Copy shared/config
+    const sharedSnap = await oldFirestore.collection('shared').doc('config').get();
+    if (sharedSnap.exists) {
+      await firestore.collection('shared').doc('config').set(sharedSnap.data());
+      log('shared/config ✓');
+    }
+    // Copy toko data & config
+    for (const toko of tokoList) {
+      const dataSnap = await oldFirestore.collection('toko').doc(toko).collection('main').doc('data').get();
+      if (dataSnap.exists) {
+        await firestore.collection('toko').doc(toko).collection('main').doc('data').set(dataSnap.data());
+        log(`toko/${toko}/data ✓`);
+      }
+      const cfgSnap = await oldFirestore.collection('toko').doc(toko).collection('main').doc('config').get();
+      if (cfgSnap.exists) {
+        await firestore.collection('toko').doc(toko).collection('main').doc('config').set(cfgSnap.data());
+        log(`toko/${toko}/config ✓`);
+      }
+    }
+    alert('✅ Migrasi selesai! Data sudah pindah ke server baru yang aman.');
+    if (btn) { btn.textContent = '✅ Selesai'; }
+  } catch(e) {
+    alert('❌ Migrasi gagal: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Migrasi Data'; }
+  }
+}
 
 // =============================================
 //  EXPORT DATA

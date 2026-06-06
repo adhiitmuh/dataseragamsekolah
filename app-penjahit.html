@@ -2882,7 +2882,7 @@ const firebaseConfig = {
   appId: "1:359180403760:web:bacf158b0956a3464519f5"
 };
 firebase.initializeApp(firebaseConfig);
-const firestore = firebase.firestore(); // data tetap di project lama
+const oldFirestore = firebase.firestore(); // lama — hanya untuk migrasi data
 
 // Auth terpusat via harmoni-indonesia
 const harmoniConfig = {
@@ -2896,6 +2896,7 @@ const harmoniConfig = {
 const harmoniApp = firebase.initializeApp(harmoniConfig, 'harmoni-auth');
 const auth = harmoniApp.auth();
 const authDb = harmoniApp.firestore();
+const firestore = authDb; // data pindah ke harmoni-indonesia (aman, auth-protected)
 
 // ===== DARK MODE =====
 function toggleDarkMode() {
@@ -3400,6 +3401,7 @@ async function loadUserData(uid) {
   const appAccess = data.apps?.sistem_penjahit;
   if (!appAccess?.akses) return null;
   data.role = appAccess.role || 'staff';
+  data.toko = appAccess.toko || 'harmonis_sentral';
   return data;
 }
 
