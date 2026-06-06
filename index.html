@@ -4671,11 +4671,14 @@ function renderPembayaranTab() {
 function openModalBayar(penjahitId, tipe) {
   const p = getPenjahit(penjahitId);
   if (!p) return;
-  const fB = document.getElementById('bayar-filter-bulan').value;
+  const fB = document.getElementById('laporan-bulan').value;
 
-  const totalOrder = db.orders
-    .filter(o => o.penjahitId == penjahitId && (!fB || bulanStr(o.tanggal) === fB))
-    .reduce((s,o) => s + o.qty*o.harga, 0);
+  const totalOrder = (db.setoran||[])
+    .filter(s => s.penjahitId == penjahitId && (!fB || bulanStr(s.tanggal) === fB))
+    .reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
   const totalBahan = (db.pengambilans||[])
     .filter(a => a.penjahitId == penjahitId && (!fB || bulanStr(a.tanggal) === fB))
     .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -4716,11 +4719,14 @@ function editPembayaran(trxId) {
   if (!trx) return;
   const p = getPenjahit(trx.penjahitId);
   const isAdmin = currentUserData && currentUserData.role === 'admin';
-  const fB = document.getElementById('bayar-filter-bulan').value;
+  const fB = document.getElementById('laporan-bulan').value;
 
-  const totalOrder = db.orders
-    .filter(o => o.penjahitId == trx.penjahitId && (!fB || bulanStr(o.tanggal) === fB))
-    .reduce((s,o) => s + o.qty*o.harga, 0);
+  const totalOrder = (db.setoran||[])
+    .filter(s => s.penjahitId == trx.penjahitId && (!fB || bulanStr(s.tanggal) === fB))
+    .reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
   const totalBahan = (db.pengambilans||[])
     .filter(a => a.penjahitId == trx.penjahitId && (!fB || bulanStr(a.tanggal) === fB))
     .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -7272,13 +7278,20 @@ function buildSheetRiwayat() {
 function buildSheetRekap() {
   const rows = [['Penjahit','Total Order','Total Pcs','Total Bayar (Rp)','Total Kain (yard)']];
   db.penjahit.forEach(p => {
-    const orders = filterByExport(db.orders).filter(o => o.penjahitId == p.id);
-    const ambs   = filterByExport(db.pengambilans).filter(a => a.penjahitId == p.id);
+    const orders   = filterByExport(db.orders).filter(o => o.penjahitId == p.id);
+    const setorans = filterByExport(db.setoran||[]).filter(s => s.penjahitId == p.id);
+    const ambs     = filterByExport(db.pengambilans).filter(a => a.penjahitId == p.id);
     rows.push([
       p.nama,
       orders.length,
-      orders.reduce((s, o) => s + o.qty, 0),
-      orders.reduce((s, o) => s + o.qty * o.harga, 0),
+      setorans.reduce((s,st) => {
+        const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+        return s + (st.totalPcs||0) + extra;
+      }, 0),
+      setorans.reduce((s,st) => {
+        const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+        return s + (st.totalNilai||0) + extra;
+      }, 0),
       ambs.reduce((s, a) => s + (a.totalKain || 0), 0)
     ]);
   });

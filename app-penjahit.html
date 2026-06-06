@@ -4581,7 +4581,7 @@ function renderPembayaranTab() {
     db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
   if (prevP) selP.value = prevP;
 
-  const bulanSet = new Set(db.orders.map(o => bulanStr(o.tanggal)));
+  const bulanSet = new Set((db.setoran||[]).map(s => bulanStr(s.tanggal)));
   const selB = document.getElementById('bayar-filter-bulan');
   const prevB = selB.value;
   selB.innerHTML = '<option value="">— Semua Periode —</option>' +
@@ -4595,8 +4595,11 @@ function renderPembayaranTab() {
   // Build per-penjahit cards
   const penjahitList = fP ? db.penjahit.filter(p => p.id == fP) : db.penjahit;
   const html = penjahitList.map(p => {
-    const orders = db.orders.filter(o => o.penjahitId == p.id && (!fB || bulanStr(o.tanggal) === fB));
-    const totalOrder = orders.reduce((s,o) => s + o.qty*o.harga, 0);
+    const setorans = (db.setoran||[]).filter(s => s.penjahitId == p.id && (!fB || bulanStr(s.tanggal) === fB));
+    const totalOrder = setorans.reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
     const totalBahan = (db.pengambilans || [])
       .filter(a => a.penjahitId == p.id && (!fB || bulanStr(a.tanggal) === fB))
       .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -4678,9 +4681,12 @@ function openModalBayar(penjahitId, tipe) {
   if (!p) return;
   const fB = document.getElementById('bayar-filter-bulan').value;
 
-  const totalOrder = db.orders
-    .filter(o => o.penjahitId == penjahitId && (!fB || bulanStr(o.tanggal) === fB))
-    .reduce((s,o) => s + o.qty*o.harga, 0);
+  const totalOrder = (db.setoran||[])
+    .filter(s => s.penjahitId == penjahitId && (!fB || bulanStr(s.tanggal) === fB))
+    .reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
   const totalBahan = (db.pengambilans||[])
     .filter(a => a.penjahitId == penjahitId && (!fB || bulanStr(a.tanggal) === fB))
     .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -4723,9 +4729,12 @@ function editPembayaran(trxId) {
   const isAdmin = currentUserData && currentUserData.role === 'admin';
   const fB = document.getElementById('bayar-filter-bulan').value;
 
-  const totalOrder = db.orders
-    .filter(o => o.penjahitId == trx.penjahitId && (!fB || bulanStr(o.tanggal) === fB))
-    .reduce((s,o) => s + o.qty*o.harga, 0);
+  const totalOrder = (db.setoran||[])
+    .filter(s => s.penjahitId == trx.penjahitId && (!fB || bulanStr(s.tanggal) === fB))
+    .reduce((s,st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
   const totalBahan = (db.pengambilans||[])
     .filter(a => a.penjahitId == trx.penjahitId && (!fB || bulanStr(a.tanggal) === fB))
     .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
@@ -5926,8 +5935,14 @@ function renderSesi() {
     const orders = (sesi.orderIds || []).map(id => db.orders.find(o => o.id === id)).filter(Boolean);
     const totalTarget = orders.reduce((s, o) => s + o.qty, 0);
     const setoranList = (db.setoran || []).filter(st => st.sesiId === sesi.id);
-    const totalSetoran = setoranList.reduce((s, st) => s + st.totalPcs, 0);
-    const nilaiSetoran = setoranList.reduce((s, st) => s + st.totalNilai, 0);
+    const totalSetoran = setoranList.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+      return s + (st.totalPcs||0) + extra;
+    }, 0);
+    const nilaiSetoran = setoranList.reduce((s, st) => {
+      const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+      return s + (st.totalNilai||0) + extra;
+    }, 0);
     const pengambilanList = (db.pengambilans || []).filter(a => a.sesiId === sesi.id);
     const nilaiKain = pengambilanList.reduce((s, a) => s + (a.grandTotal || 0), 0);
     const pct = totalTarget > 0 ? Math.min(100, Math.round(totalSetoran / totalTarget * 100)) : 0;
@@ -7170,13 +7185,20 @@ function buildSheetRiwayat() {
 function buildSheetRekap() {
   const rows = [['Penjahit','Total Order','Total Pcs','Total Bayar (Rp)','Total Kain (yard)']];
   db.penjahit.forEach(p => {
-    const orders = filterByExport(db.orders).filter(o => o.penjahitId == p.id);
-    const ambs   = filterByExport(db.pengambilans).filter(a => a.penjahitId == p.id);
+    const orders   = filterByExport(db.orders).filter(o => o.penjahitId == p.id);
+    const setorans = filterByExport(db.setoran||[]).filter(s => s.penjahitId == p.id);
+    const ambs     = filterByExport(db.pengambilans).filter(a => a.penjahitId == p.id);
     rows.push([
       p.nama,
       orders.length,
-      orders.reduce((s, o) => s + o.qty, 0),
-      orders.reduce((s, o) => s + o.qty * o.harga, 0),
+      setorans.reduce((s,st) => {
+        const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.qty||0),0);
+        return s + (st.totalPcs||0) + extra;
+      }, 0),
+      setorans.reduce((s,st) => {
+        const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+        return s + (st.totalNilai||0) + extra;
+      }, 0),
       ambs.reduce((s, a) => s + (a.totalKain || 0), 0)
     ]);
   });
