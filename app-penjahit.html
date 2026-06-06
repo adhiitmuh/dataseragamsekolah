@@ -3897,6 +3897,7 @@ function populateOrderFilters() {
   const selPenjahit = document.getElementById('filter-order-penjahit');
   const selProduk = document.getElementById('filter-order-produk');
   const selBulan = document.getElementById('filter-order-bulan');
+  const prevP = selPenjahit.value, prevPr = selProduk.value, prevB = selBulan.value;
 
   selPenjahit.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
@@ -3907,6 +3908,10 @@ function populateOrderFilters() {
   const bulanArr = [...bulanSet].sort().reverse();
   selBulan.innerHTML = '<option value="">— Semua Bulan —</option>' +
     bulanArr.map(b => `<option value="${b}">${namabulan(b)}</option>`).join('');
+
+  if (prevP) selPenjahit.value = prevP;
+  if (prevPr) selProduk.value = prevPr;
+  if (prevB) selBulan.value = prevB;
 }
 
 function renderOrderList() {
@@ -4863,17 +4868,23 @@ function cetakKwitansi(trxId) {
 //  PENGAMBILAN BAHAN
 // =============================================
 function renderPengambilan() {
-  // Populate filters
+  // Populate filters — save values first to preserve selection after innerHTML rebuild
   const selP = document.getElementById('filter-amb-penjahit');
+  const selPr = document.getElementById('filter-amb-produk');
+  const selB = document.getElementById('filter-amb-bulan');
+  const prevP = selP.value, prevPr = selPr.value, prevB = selB.value;
+
   selP.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
-  const selPr = document.getElementById('filter-amb-produk');
   selPr.innerHTML = '<option value="">— Semua Produk —</option>' +
     PRODUK_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
   const bulanSet = new Set(db.pengambilans.map(a=>bulanStr(a.tanggal)));
-  const selB = document.getElementById('filter-amb-bulan');
   selB.innerHTML = '<option value="">— Semua Bulan —</option>' +
     [...bulanSet].sort().reverse().map(b=>`<option value="${b}">${namabulan(b)}</option>`).join('');
+
+  if (prevP) selP.value = prevP;
+  if (prevPr) selPr.value = prevPr;
+  if (prevB) selB.value = prevB;
 
   const fP = selP.value, fPr = selPr.value, fB = selB.value;
   let list = db.pengambilans.filter(a => {
