@@ -629,9 +629,9 @@ body.dark .page-title { color: #E5E7EB; }
             <thead>
               <tr>
                 <th>Penjahit</th>
-                <th class="td-right">Total Order</th>
-                <th class="td-right">Total Pcs</th>
-                <th class="td-right">Total Penghasilan</th>
+                <th class="td-right">Total Setoran</th>
+                <th class="td-right">Total Pcs Aktual</th>
+                <th class="td-right">Total Penghasilan Aktual</th>
                 <th class="td-right">Rata-rata/Pcs</th>
                 <th class="td-right admin-col">Modal Std Total</th>
                 <th class="td-right admin-col">Selisih Total</th>
@@ -666,14 +666,6 @@ body.dark .page-title { color: #E5E7EB; }
 
     <!-- TAB: PEMBAYARAN -->
     <div id="tab-laporan-bayar" style="display:none;">
-      <div class="filter-bar" style="margin-bottom:16px;">
-        <select id="bayar-filter-penjahit" onchange="renderPembayaranTab()">
-          <option value="">— Semua Penjahit —</option>
-        </select>
-        <select id="bayar-filter-bulan" onchange="renderPembayaranTab()">
-          <option value="">— Semua Periode —</option>
-        </select>
-      </div>
       <div id="pembayaran-tab-container"></div>
     </div>
   </div>
@@ -4417,46 +4409,28 @@ function renderLaporan() {
   const fB = selBulan.value;
   const fP = selPenjahit.value;
 
-  let orders = db.orders;
-  if (fB) orders = orders.filter(o => bulanStr(o.tanggal) === fB);
-  if (fP) orders = orders.filter(o => o.penjahitId == fP);
+  // Gunakan setoran aktual (bukan order) sebagai dasar laporan penghasilan
+  let setorans = db.setoran || [];
+  if (fB) setorans = setorans.filter(s => bulanStr(s.tanggal) === fB);
+  if (fP) setorans = setorans.filter(s => s.penjahitId == fP);
 
-  const totalBayar = orders.reduce((s,o)=>s+o.qty*o.harga, 0);
-  const totalPcs = orders.reduce((s,o)=>s+o.qty, 0);
-  let totalModalStd = 0;
-  orders.forEach(o => {
-    const std = getModalStandar(o.produk, o.ukuran);
-    if (std) totalModalStd += std.modal * o.qty;
-  });
+  const totalBayar = setorans.reduce((s,st) => s + (st.totalNilai||0), 0);
+  const totalPcs   = setorans.reduce((s,st) => s + (st.totalPcs||0), 0);
 
   document.getElementById('laporan-summary').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${orders.length}</div><div class="stat-label">Total Order</div></div>
-    <div class="stat-card"><div class="stat-num">${totalPcs.toLocaleString('id-ID')}</div><div class="stat-label">Total Pcs</div></div>
-    <div class="stat-card"><div class="stat-num">${rpShort(totalBayar)}</div><div class="stat-label">Total Biaya ke Penjahit</div></div>
+    <div class="stat-card"><div class="stat-num">${setorans.length}</div><div class="stat-label">Total Setoran</div></div>
+    <div class="stat-card"><div class="stat-num">${totalPcs.toLocaleString('id-ID')}</div><div class="stat-label">Total Pcs Aktual</div></div>
+    <div class="stat-card"><div class="stat-num">${rpShort(totalBayar)}</div><div class="stat-label">Total Penghasilan Aktual</div></div>
   `;
 
   // Group by penjahit
   const penjahitMap = {};
   db.penjahit.forEach(p => {
-    const po = orders.filter(o => o.penjahitId == p.id);
-    if (!po.length) return;
-    let totalB = 0, totalPcs_ = 0, totalStd = 0, devSum = 0, devN = 0;
-    po.forEach(o => {
-      totalB += o.qty * o.harga;
-      totalPcs_ += o.qty;
-      const std = getModalStandar(o.produk, o.ukuran);
-      if (std) {
-        totalStd += std.modal * o.qty;
-        const dev = getDeviasi(o.harga, std.modal);
-        if (dev !== null) { devSum += dev; devN++; }
-      }
-    });
-    penjahitMap[p.id] = {
-      nama: p.nama, id: p.id,
-      nOrder: po.length, totalPcs: totalPcs_, totalBayar: totalB,
-      totalStd, selisih: totalB - totalStd,
-      avgDev: devN ? devSum/devN : null,
-    };
+    const ps = setorans.filter(s => s.penjahitId == p.id);
+    if (!ps.length) return;
+    const totalB   = ps.reduce((s,st) => s + (st.totalNilai||0), 0);
+    const totalPcs_ = ps.reduce((s,st) => s + (st.totalPcs||0), 0);
+    penjahitMap[p.id] = { nama: p.nama, id: p.id, nSetoran: ps.length, totalPcs: totalPcs_, totalBayar: totalB };
   });
 
   const rows = Object.values(penjahitMap).sort((a,b) => b.totalBayar - a.totalBayar);
@@ -4468,40 +4442,38 @@ function renderLaporan() {
 
   tbody.innerHTML = rows.map(r => `<tr>
     <td><a href="#" style="color:var(--green); font-weight:bold;" onclick="showLaporanDetail(${r.id}, '${r.nama}'); return false;">${r.nama}</a></td>
-    <td class="td-right">${r.nOrder}</td>
+    <td class="td-right">${r.nSetoran}</td>
     <td class="td-right">${r.totalPcs.toLocaleString('id-ID')}</td>
     <td class="td-right num" style="font-weight:bold;">${rp(r.totalBayar)}</td>
-    <td class="td-right num">${rp(r.totalBayar / r.totalPcs)}</td>
-    <td class="td-right num admin-col" style="color:var(--gray);">${rp(r.totalStd)}</td>
-    <td class="td-right num admin-col"><span class="${r.selisih > 0 ? 'dev-danger' : 'dev-ok'}">${r.selisih > 0 ? '+' : ''}${rp(r.selisih)}</span></td>
-    <td class="td-center admin-col">${deviasiBadge(r.avgDev)}</td>
+    <td class="td-right num">${r.totalPcs ? rp(r.totalBayar / r.totalPcs) : '—'}</td>
+    <td class="td-right num admin-col" style="color:var(--gray);">—</td>
+    <td class="td-right num admin-col">—</td>
+    <td class="td-center admin-col">—</td>
   </tr>`).join('');
 }
 
 function showLaporanDetail(penjahitId, nama) {
   const fB = document.getElementById('laporan-bulan').value;
-  let orders = db.orders.filter(o => o.penjahitId == penjahitId);
-  if (fB) orders = orders.filter(o => bulanStr(o.tanggal) === fB);
-  orders.sort((a,b) => b.id - a.id);
+  let setorans = (db.setoran || []).filter(s => s.penjahitId == penjahitId);
+  if (fB) setorans = setorans.filter(s => bulanStr(s.tanggal) === fB);
+  setorans.sort((a,b) => b.id - a.id);
 
   document.getElementById('laporan-detail-card').style.display = 'block';
-  document.getElementById('laporan-detail-title').textContent = `Detail Order — ${nama}`;
+  document.getElementById('laporan-detail-title').textContent = `Detail Setoran — ${nama}`;
 
   const tbody = document.getElementById('tbody-laporan-detail');
-  tbody.innerHTML = orders.map(o => {
-    const std = getModalStandar(o.produk, o.ukuran);
-    const dev = std ? getDeviasi(o.harga, std.modal) : null;
-    return `<tr>
-      <td>${o.tanggal}</td>
-      <td>${o.produk}</td>
-      <td>${o.ukuran}</td>
-      <td class="td-right">${o.qty}</td>
-      <td class="td-right num">${rp(o.harga)}</td>
-      <td class="td-right num">${rp(o.qty * o.harga)}</td>
-      <td class="td-right num admin-col" style="color:var(--gray);">${std ? rp(std.modal) : '—'}</td>
-      <td class="td-center admin-col">${deviasiBadge(dev)}</td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = setorans.flatMap(st =>
+    (st.items||[]).map(item => `<tr>
+      <td>${st.tanggal}</td>
+      <td>${item.produk}</td>
+      <td>${item.ukuran}</td>
+      <td class="td-right">${item.qty}</td>
+      <td class="td-right num">${rp(item.harga)}</td>
+      <td class="td-right num">${rp(item.total||item.qty*item.harga)}</td>
+      <td class="td-right num admin-col" style="color:var(--gray);">—</td>
+      <td class="td-center admin-col">—</td>
+    </tr>`)
+  ).join('') || '<tr><td colspan="8" style="text-align:center;color:#bbb;padding:12px;">Belum ada setoran</td></tr>';
 
   document.getElementById('laporan-detail-card').scrollIntoView({behavior:'smooth'});
 }
@@ -4531,29 +4503,17 @@ function switchLaporanTab(tab) {
 }
 
 function renderPembayaranTab() {
-  // Populate filters
-  const selP = document.getElementById('bayar-filter-penjahit');
-  const prevP = selP.value;
-  selP.innerHTML = '<option value="">— Semua Penjahit —</option>' +
-    db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
-  if (prevP) selP.value = prevP;
-
-  const bulanSet = new Set(db.orders.map(o => bulanStr(o.tanggal)));
-  const selB = document.getElementById('bayar-filter-bulan');
-  const prevB = selB.value;
-  selB.innerHTML = '<option value="">— Semua Periode —</option>' +
-    [...bulanSet].sort().reverse().map(b => `<option value="${b}">${namabulan(b)}</option>`).join('');
-  if (prevB) selB.value = prevB;
-
-  const fP  = selP.value;
-  const fB  = selB.value;
+  // Pakai filter atas (bukan filter duplikat)
+  const fP = document.getElementById('laporan-penjahit').value;
+  const fB = document.getElementById('laporan-bulan').value;
   const container = document.getElementById('pembayaran-tab-container');
 
   // Build per-penjahit cards
   const penjahitList = fP ? db.penjahit.filter(p => p.id == fP) : db.penjahit;
   const html = penjahitList.map(p => {
-    const orders = db.orders.filter(o => o.penjahitId == p.id && (!fB || bulanStr(o.tanggal) === fB));
-    const totalOrder = orders.reduce((s,o) => s + o.qty*o.harga, 0);
+    // Penghasilan dari setoran aktual
+    const setorans = (db.setoran || []).filter(s => s.penjahitId == p.id && (!fB || bulanStr(s.tanggal) === fB));
+    const totalOrder = setorans.reduce((s,st) => s + (st.totalNilai||0), 0);
     const totalBahan = (db.pengambilans || [])
       .filter(a => a.penjahitId == p.id && (!fB || bulanStr(a.tanggal) === fB))
       .reduce((s,a) => s + (a.grandTotal||a.totalNilai||0), 0);
