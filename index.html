@@ -5816,10 +5816,12 @@ function renderBreakdown() {
 // =============================================
 function renderSesi() {
   const selP = document.getElementById('filter-sesi-penjahit');
+  const prevP = selP.value;
   selP.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
+  if (prevP) selP.value = prevP;
 
-  const fP = document.getElementById('filter-sesi-penjahit').value;
+  const fP = selP.value;
   const fS = document.getElementById('filter-sesi-status').value;
 
   let data = (db.sesi || []).slice().reverse();
