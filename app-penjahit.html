@@ -3630,7 +3630,11 @@ function renderDashboard() {
   const bulan = bulanStr(today());
   const aktif = db.penjahit.filter(p => p.status === 'aktif').length;
   const orderBulan = db.orders.filter(o => bulanStr(o.tanggal) === bulan);
-  const biayaBulan = orderBulan.reduce((s, o) => s + (o.qty * o.harga), 0);
+  const setoranBulan = (db.setoran || []).filter(s => bulanStr(s.tanggal) === bulan);
+  const biayaBulan = setoranBulan.reduce((s, st) => {
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+    return s + (st.totalNilai||0) + extra;
+  }, 0);
 
   let overcharge = 0;
   db.orders.forEach(o => {
@@ -3659,13 +3663,14 @@ function renderDashboard() {
       }).join('') + '</tbody></table>';
   }
 
-  // Penghasilan bulan ini
+  // Penghasilan bulan ini — dari setoran aktual
   const pengMap = {};
-  orderBulan.forEach(o => {
-    const p = getPenjahit(o.penjahitId);
+  setoranBulan.forEach(st => {
+    const p = getPenjahit(st.penjahitId);
     if (!p) return;
     if (!pengMap[p.nama]) pengMap[p.nama] = 0;
-    pengMap[p.nama] += o.qty * o.harga;
+    const extra = (st.extraItems||[]).filter(e=>e.status==='diterima').reduce((a,e)=>a+(e.total||0),0);
+    pengMap[p.nama] += (st.totalNilai||0) + extra;
   });
   const pBox = document.getElementById('dash-penghasilan');
   const sorted = Object.entries(pengMap).sort((a,b) => b[1]-a[1]);
