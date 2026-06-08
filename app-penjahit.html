@@ -3511,6 +3511,16 @@ function rp(n) {
   if (!n && n !== 0) return '—';
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
 }
+function inputByFields() {
+  return {
+    inputBy: currentUser?.uid || '',
+    inputByNama: currentUserData?.nama || '',
+  };
+}
+function inputByBadge(nama) {
+  if (!nama) return '';
+  return `<br><span style="font-size:10px;color:#aaa;font-weight:normal;">👤 ${nama}</span>`;
+}
 
 function rpShort(n) {
   if (!n && n !== 0) return '—';
@@ -3967,7 +3977,7 @@ function renderOrderList() {
       ? `<span class="badge ${sesi.status==='selesai'?'badge-green':'badge-yellow'}" title="Sesi #${sesi.id}">#${sesi.id} ${sesi.status==='selesai'?'✓':'🔄'}</span>`
       : '<span style="color:#ccc;">—</span>';
     return `<tr>
-      <td>${o.tanggal}</td>
+      <td>${o.tanggal}${inputByBadge(o.inputByNama)}</td>
       <td>${p ? p.nama : '<span style="color:#bbb">—</span>'}</td>
       <td>${o.produk}</td>
       <td>${o.ukuran}</td>
@@ -4235,7 +4245,7 @@ function saveOrder() {
     const qty = parseInt(document.getElementById(`bulk-qty-${n}`).value);
     const harga = parseFloat(document.getElementById(`bulk-harga-${n}`).value);
     if (!produk || !ukuran || !qty || !harga) return;
-    db.orders.push({id: db.nextOrderId++, tanggal, penjahitId: parseInt(penjahitId), produk, ukuran, qty, harga, catatan});
+    db.orders.push({id: db.nextOrderId++, tanggal, penjahitId: parseInt(penjahitId), produk, ukuran, qty, harga, catatan, ...inputByFields()});
     saved++;
   });
   if (!saved) { alert('Mohon lengkapi minimal satu produk dengan semua field terisi'); return; }
@@ -4620,7 +4630,7 @@ function renderPembayaranTab() {
     const isAdmin = currentUserData && currentUserData.role === 'admin';
     const trxRows = trxList.length ? trxList.map(t => `
       <tr style="${t.dibatalkan ? 'opacity:0.45; text-decoration:line-through;' : ''}">
-        <td>${t.tanggal}</td>
+        <td>${t.tanggal}${inputByBadge(t.inputByNama)}</td>
         <td>${t.tipe === 'bayar' ? '<span class="badge badge-green">💳 Bayar</span>' : '<span class="badge badge-yellow">📋 Kasbon</span>'}${t.dibatalkan ? ' <span class="badge badge-gray">Batal</span>' : ''}</td>
         <td class="td-right num" style="font-weight:bold;">${rp(t.jumlah)}</td>
         <td>${t.metode === 'tunai' ? '💵 Tunai' : '🏦 Transfer'}</td>
@@ -4857,6 +4867,7 @@ async function savePembayaran() {
       id: db.nextPembayaranId++,
       penjahitId, tipe, tanggal, jumlah, metode, referensi, catatan, nomorKwitansi,
       lunas: false, dibatalkan: false,
+      ...inputByFields(),
     };
     db.pembayaran.push(trx);
     saveDB();
@@ -4940,7 +4951,7 @@ function renderPengambilan() {
             : ((a.jenisKain ? `<span style="font-size:11px;color:#555;">${a.jenisKain}<br></span>` : '') + (a.kainPerPcs + ' yard')));
       const nilaiBonus = isKain ? 0 : (a.nilaiBonus || 0);
       return `<tr${isKain?' style="background:#FFFDE7;"':''}>
-        <td>${a.tanggal}</td>
+        <td>${a.tanggal}${inputByBadge(a.inputByNama)}</td>
         <td>${p?p.nama:'—'}</td>
         <td>${produkCell}</td>
         <td>${ukuranCell}</td>
@@ -5390,7 +5401,7 @@ function savePengambilan() {
     const idx = db.pengambilans.findIndex(a=>a.id==id);
     if (idx!==-1) db.pengambilans[idx] = {...db.pengambilans[idx], ...data};
   } else {
-    db.pengambilans.push({id: db.nextPengambilanId++, ...data});
+    db.pengambilans.push({id: db.nextPengambilanId++, ...data, ...inputByFields()});
   }
   saveDB();
   closeModal('modal-pengambilan');
@@ -5959,7 +5970,7 @@ function renderSesi() {
 
     const setoranRows = setoranList.map(st => `
       <tr style="font-size:12px;">
-        <td>${st.tanggal}</td>
+        <td>${st.tanggal}${inputByBadge(st.inputByNama)}</td>
         <td class="td-right">${st.totalPcs} pcs</td>
         <td class="td-right num">${rp(st.totalNilai)}</td>
         <td style="color:#666;">${st.catatan || '—'}${st.adaLuarOrder ? ' <span style="background:var(--yellow-bg);color:var(--yellow);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">+LUAR ORDER</span>' : ''}</td>
@@ -5980,7 +5991,7 @@ function renderSesi() {
         <div>
           <div style="font-size:18px; font-weight:bold; color:var(--green-dark);">${p ? p.nama : '?'} ${statusBadge}</div>
           <div style="margin:4px 0;">${produkBadges || '<span style="color:#bbb;font-size:12px;">—</span>'}</div>
-          <div style="font-size:12px; color:#666;">Mulai: ${sesi.tanggal}${sesi.tanggalClose ? ' · Tutup: ' + sesi.tanggalClose : ''}${sesi.catatan ? ' · ' + sesi.catatan : ''}</div>
+          <div style="font-size:12px; color:#666;">Mulai: ${sesi.tanggal}${sesi.tanggalClose ? ' · Tutup: ' + sesi.tanggalClose : ''}${sesi.catatan ? ' · ' + sesi.catatan : ''}${sesi.inputByNama ? ' · 👤 ' + sesi.inputByNama : ''}</div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${sesi.status === 'berjalan' ? `
@@ -6157,6 +6168,7 @@ function saveSesi() {
     tanggalClose: null,
     catatan: document.getElementById('sesi-catatan').value.trim(),
     analisis: null,
+    ...inputByFields(),
   });
   saveDB();
   closeModal('modal-buat-sesi');
@@ -6348,6 +6360,7 @@ function saveSetoran() {
     extraItems,
     adaLuarOrder: extraItems.length > 0,
     catatan: document.getElementById('setoran-catatan').value.trim(),
+    ...inputByFields(),
   });
   saveDB();
   closeModal('modal-setoran');
