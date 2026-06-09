@@ -1178,10 +1178,19 @@ body.dark .page-title { color: #E5E7EB; }
         <button class="btn btn-primary" onclick="exportExcelAll()">📊 Export Semua Data</button>
         <button class="btn btn-outline" onclick="exportExcelSheet('orders')">📦 Orders Saja</button>
         <button class="btn btn-outline" onclick="exportExcelSheet('pengambilan')">📤 Pengambilan Saja</button>
+        <button class="btn btn-outline" onclick="exportExcelSheet('setoran')">📥 Setoran Saja</button>
+        <button class="btn btn-outline" onclick="exportExcelSheet('pembayaran')">💸 Pembayaran Saja</button>
         <button class="btn btn-outline" onclick="exportExcelSheet('harga')">📋 Harga Standar</button>
         <button class="btn btn-outline" onclick="exportExcelSheet('penjahit')">👥 Daftar Penjahit</button>
         <button class="btn btn-outline" onclick="exportExcelSheet('riwayat')">📜 Riwayat Harga</button>
       </div>
+    </div>
+
+    <!-- Backup JSON -->
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-title">Backup Data (JSON)</div>
+      <p style="font-size:13px; color:#666; margin-bottom:16px;">Download semua data sebagai file JSON. Simpan secara rutin untuk mencegah kehilangan data.</p>
+      <button class="btn btn-outline" onclick="downloadBackupJSON()">💾 Download Backup JSON</button>
     </div>
 
     <!-- Export PDF -->
@@ -3799,7 +3808,7 @@ function savePenjahit() {
     const idx = db.penjahit.findIndex(p => p.id == id);
     if (idx !== -1) db.penjahit[idx] = {...db.penjahit[idx], ...data};
   } else {
-    db.penjahit.push({id: db.nextPenjahitId++, ...data});
+    db.penjahit.push({id: db.nextPenjahitId++, ...data, ...inputByFields()});
   }
   saveDB('shared');
   closeModal('modal-penjahit');
@@ -4044,7 +4053,7 @@ function onBulkProdukChange(n) {
   const ukuranSel = document.getElementById(`bulk-ukuran-${n}`);
   document.getElementById(`bulk-hint-${n}`).textContent = '';
   document.getElementById(`bulk-untung-${n}`).textContent = '';
-  if (!produk) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
+  if (!produk || !PRODUK_DATA[produk]) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
   const sizes = PRODUK_DATA[produk].sizes;
   ukuranSel.innerHTML = '<option value="">— Ukuran —</option>' +
     sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
@@ -4139,7 +4148,7 @@ function updateOrderProdukByPenjahit() {
 function updateOrderUkuranOptions() {
   const produk = document.getElementById('o-produk').value;
   const sel = document.getElementById('o-ukuran');
-  if (!produk) {
+  if (!produk || !PRODUK_DATA[produk]) {
     sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
     return;
   }
@@ -6824,14 +6833,23 @@ async function doApproveUser() {
     if (!pendingDoc.exists) { alert('Data tidak ditemukan.'); btn.disabled=false; btn.textContent='✅ Setujui & Buat Akun'; return; }
     const p = pendingDoc.data();
     const email = usernameToEmail(p.username);
+    // Gunakan harmoniConfig.apiKey agar akun dibuat di project harmoni-indonesia
     const resp = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${harmoniConfig.apiKey}`,
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({email, password:pw, returnSecureToken:true}) }
     );
     const data = await resp.json();
     if (data.error) { alert('Gagal buat akun: ' + data.error.message); btn.disabled=false; btn.textContent='✅ Setujui & Buat Akun'; return; }
-    await firestore.collection('users').doc(data.localId).set({ uid:data.localId, username:p.username, email, nama:p.nama, role, toko });
+    // Simpan struktur yang sesuai dengan loadUserData() — aktif:true wajib ada
+    let userData;
+    if (role === 'admin') {
+      userData = { uid: data.localId, username: p.username, email, nama: p.nama, aktif: true, role: 'owner', toko };
+    } else {
+      userData = { uid: data.localId, username: p.username, email, nama: p.nama, aktif: true,
+        apps: { sistem_penjahit: { akses: true, role: 'staff', toko } } };
+    }
+    await firestore.collection('users').doc(data.localId).set(userData);
     await firestore.collection('pendingUsers').doc(pendingId).delete();
     closeModal('modal-approve-user');
     renderUsers();
@@ -7288,6 +7306,27 @@ function buildSheetRiwayat() {
   return XLSX.utils.aoa_to_sheet(rows);
 }
 
+function buildSheetSetoran() {
+  const rows = [['Tanggal','Penjahit','Total Pcs','Extra Pcs','Total Nilai (Rp)','Extra Nilai (Rp)','Input Oleh']];
+  filterByExport(db.setoran || []).forEach(s => {
+    const p = getPenjahit(s.penjahitId);
+    const extraDiterima = (s.extraItems || []).filter(e => e.status === 'diterima');
+    const extraPcs   = extraDiterima.reduce((a, e) => a + (e.pcs   || 0), 0);
+    const extraNilai = extraDiterima.reduce((a, e) => a + (e.total || 0), 0);
+    rows.push([s.tanggal, p ? p.nama : '—', s.totalPcs || 0, extraPcs, s.totalNilai || 0, extraNilai, s.inputByNama || '—']);
+  });
+  return XLSX.utils.aoa_to_sheet(rows);
+}
+
+function buildSheetPembayaran() {
+  const rows = [['Tanggal','Penjahit','Tipe','Jumlah (Rp)','Metode','No Kwitansi','Status','Input Oleh']];
+  (db.pembayaran || []).forEach(t => {
+    const p = getPenjahit(t.penjahitId);
+    rows.push([t.tanggal, p ? p.nama : '—', t.tipe, t.jumlah, t.metode, t.nomorKwitansi || '—', t.dibatalkan ? 'Dibatalkan' : 'Aktif', t.inputByNama || '—']);
+  });
+  return XLSX.utils.aoa_to_sheet(rows);
+}
+
 function buildSheetRekap() {
   const rows = [['Penjahit','Total Order','Total Pcs','Total Bayar (Rp)','Total Kain (yard)']];
   db.penjahit.forEach(p => {
@@ -7325,11 +7364,23 @@ function autoColWidth(ws) {
   ws['!cols'] = cols;
 }
 
+function downloadBackupJSON() {
+  const backup = { exportDate: new Date().toISOString(), toko: currentToko, data: db };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Harmoni_Penjahit_backup_${today()}.json`;
+  a.click();
+  showToast('✓ File backup JSON berhasil diunduh!');
+}
+
 function exportExcelAll() {
   const wb = XLSX.utils.book_new();
   const sheets = [
     {name: 'Orders',           ws: buildSheetOrders()},
     {name: 'Pengambilan Bahan',ws: buildSheetPengambilan()},
+    {name: 'Setoran',          ws: buildSheetSetoran()},
+    {name: 'Pembayaran',       ws: buildSheetPembayaran()},
     {name: 'Rekap Penjahit',   ws: buildSheetRekap()},
     {name: 'Harga Standar',    ws: buildSheetHarga()},
     {name: 'Daftar Penjahit',  ws: buildSheetPenjahit()},
@@ -7345,11 +7396,13 @@ function exportExcelAll() {
 function exportExcelSheet(tipe) {
   const wb = XLSX.utils.book_new();
   let ws, namaSheet, namaFile;
-  if (tipe === 'orders')       { ws = buildSheetOrders();       namaSheet = 'Orders';            namaFile = 'Orders'; }
-  else if (tipe === 'pengambilan') { ws = buildSheetPengambilan(); namaSheet = 'Pengambilan Bahan'; namaFile = 'Pengambilan'; }
-  else if (tipe === 'harga')   { ws = buildSheetHarga();        namaSheet = 'Harga Standar';     namaFile = 'HargaStandar'; }
-  else if (tipe === 'penjahit'){ ws = buildSheetPenjahit();     namaSheet = 'Daftar Penjahit';   namaFile = 'Penjahit'; }
-  else if (tipe === 'riwayat') { ws = buildSheetRiwayat();      namaSheet = 'Riwayat Harga';     namaFile = 'RiwayatHarga'; }
+  if (tipe === 'orders')          { ws = buildSheetOrders();      namaSheet = 'Orders';            namaFile = 'Orders'; }
+  else if (tipe === 'pengambilan'){ ws = buildSheetPengambilan(); namaSheet = 'Pengambilan Bahan'; namaFile = 'Pengambilan'; }
+  else if (tipe === 'setoran')    { ws = buildSheetSetoran();     namaSheet = 'Setoran';           namaFile = 'Setoran'; }
+  else if (tipe === 'pembayaran') { ws = buildSheetPembayaran();  namaSheet = 'Pembayaran';        namaFile = 'Pembayaran'; }
+  else if (tipe === 'harga')      { ws = buildSheetHarga();       namaSheet = 'Harga Standar';     namaFile = 'HargaStandar'; }
+  else if (tipe === 'penjahit')   { ws = buildSheetPenjahit();    namaSheet = 'Daftar Penjahit';   namaFile = 'Penjahit'; }
+  else if (tipe === 'riwayat')    { ws = buildSheetRiwayat();     namaSheet = 'Riwayat Harga';     namaFile = 'RiwayatHarga'; }
   else return;
   autoColWidth(ws);
   XLSX.utils.book_append_sheet(wb, ws, namaSheet);
