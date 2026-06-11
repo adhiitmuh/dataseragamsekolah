@@ -766,6 +766,10 @@ body.dark .page-title { color: #E5E7EB; }
         style="padding:10px 20px; border:none; background:none; cursor:pointer; font-size:14px; font-weight:bold; color:#999; border-bottom:3px solid transparent; margin-bottom:-2px;">
         📜 Riwayat Harga
       </button>
+      <button id="tab-bahan-aksesori-btn" onclick="switchBahanTab('aksesori')"
+        style="padding:10px 20px; border:none; background:none; cursor:pointer; font-size:14px; font-weight:bold; color:#999; border-bottom:3px solid transparent; margin-bottom:-2px;">
+        🎖️ Aksesori & Item Lain
+      </button>
     </div>
 
     <!-- TAB 1: HARGA KAIN -->
@@ -1006,6 +1010,40 @@ body.dark .page-title { color: #E5E7EB; }
         </div>
       </div>
     </div><!-- end tab-bahan-riwayat -->
+
+    <!-- TAB: Aksesori & Item Lain -->
+    <div id="tab-bahan-aksesori" style="display:none;">
+      <div class="alert alert-info" style="margin-bottom:16px;">
+        Kelola daftar aksesori dan item pelengkap (contoh: Badge OSIS SD, Emblem SMP, dll). Item ini bisa dicatat saat penjahit mengambil bahan, terpisah dari kain.
+      </div>
+      <div style="text-align:right; margin-bottom:12px;">
+        <button class="btn btn-outline btn-sm" onclick="tambahAksesori()">+ Tambah Item</button>
+        <button class="btn btn-primary" onclick="saveAksesori()" style="margin-left:8px;">💾 Simpan</button>
+      </div>
+      <div class="card">
+        <table style="width:100%;">
+          <thead>
+            <tr>
+              <th>Nama Item</th>
+              <th class="td-right" style="width:160px;">Harga Satuan (Rp)</th>
+              <th style="width:120px;">Satuan</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-aksesori"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" style="padding:8px 12px; color:#999; font-size:12px;">
+                Item ini muncul sebagai pilihan saat mencatat pengambilan aksesori oleh penjahit.
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+        <div id="aksesori-empty-hint" style="display:none; padding:24px; text-align:center; color:#aaa;">
+          Belum ada item. Klik "+ Tambah Item" untuk menambahkan.
+        </div>
+      </div>
+    </div><!-- end tab-bahan-aksesori -->
 
   </div><!-- end page-bahan -->
 
@@ -1483,6 +1521,10 @@ body.dark .page-title { color: #E5E7EB; }
         style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; background:transparent; color:#666;">
         🧵 Kasih Kain Langsung
       </button>
+      <button id="amb-mode-btn-aksesori" onclick="setAmbMode('aksesori')"
+        style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; background:transparent; color:#666;">
+        🎖️ Aksesori & Item Lain
+      </button>
     </div>
 
     <div class="form-row">
@@ -1543,6 +1585,24 @@ body.dark .page-title { color: #E5E7EB; }
       <div class="form-group">
         <label>Total Nilai Kain</label>
         <div style="padding:8px 10px; background:#f5f5f5; border-radius:4px; font-weight:bold; color:var(--green-dark);" id="amb-kain-nilai-display">—</div>
+      </div>
+    </div>
+
+    <!-- MODE: Aksesori & Item Lain -->
+    <div id="amb-section-aksesori" style="display:none;">
+      <div style="background:#F3E5F5; border:1px solid #CE93D8; border-radius:6px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#4A148C;">
+        🎖️ Catat pengambilan aksesori atau item pelengkap (badge, emblem, dll). Item dikelola di Master DB Bahan → Aksesori.
+      </div>
+      <div class="form-group">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="margin:0;">Daftar Item yang Diambil *</label>
+          <button class="btn btn-outline btn-sm" type="button" onclick="tambahAksesoriPickupRow()">+ Tambah Item</button>
+        </div>
+        <div id="amb-aksesori-rows" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Total Nilai Aksesori</label>
+        <div style="padding:8px 10px; background:#f5f5f5; border-radius:4px; font-weight:bold; color:var(--green-dark);" id="amb-aksesori-nilai-display">—</div>
       </div>
     </div>
 
@@ -2937,6 +2997,7 @@ let db = {
   nextPembayaranId: 1,
   proposalHarga: [],
   nextProposalId: 1,
+  aksesori: [],          // [{ nama, harga, satuan }] — item pelengkap/aksesori
   hargaKain: null,       // { 'Kain Putih': 25000, ... } keyed by jenis kain
   jenisKainOrder: [],    // urutan tampil jenis kain (array of nama)
   jenisKainHapus: [],    // nama jenis kain yang sengaja dihapus (agar tidak muncul lagi)
@@ -2952,6 +3013,7 @@ let db = {
 //  FIRESTORE DATA LAYER
 // =============================================
 function migrateDBFields() {
+  if (!db.aksesori) db.aksesori = [];
   if (!db.bahan) db.bahan = JSON.parse(JSON.stringify(DEFAULT_BAHAN));
   if (db.bahan.rok && !db.bahan.rok_span) {
     db.bahan.rok_span = JSON.parse(JSON.stringify(db.bahan.rok));
@@ -3050,6 +3112,7 @@ async function loadFromFirestore() {
       const s = sharedDoc.data();
       db.penjahit        = s.penjahit        || [];
       db.bahan           = s.bahan           || null;
+      db.aksesori        = s.aksesori        || [];
       db.hargaKain       = s.hargaKain       || null;
       db.jenisKainOrder  = s.jenisKainOrder  || [];
       db.jenisKainHapus  = s.jenisKainHapus  || [];
@@ -3260,6 +3323,7 @@ async function _saveDBAsync(section) {
         // hargaCustom kini per-toko (disimpan di config toko), jangan ikut tersimpan di shared
         penjahit:       db.penjahit.map(p => { const { hargaCustom, ...rest } = p; return rest; }),
         bahan:          db.bahan,
+        aksesori:       db.aksesori || [],
         hargaKain:      db.hargaKain,
         jenisKainOrder: db.jenisKainOrder || [],
         jenisKainHapus: db.jenisKainHapus || [],
@@ -4937,20 +5001,25 @@ function renderPengambilan() {
     tbody.innerHTML = list.map(a => {
       const p = getPenjahit(a.penjahitId);
       const isKain = a.mode === 'kain_langsung';
+      const isAksesori = a.mode === 'aksesori';
       const produkCell = isKain
         ? `<span class="badge badge-yellow">🧵 Kain</span> ${a.produk}`
-        : a.produk;
-      const ukuranCell = isKain ? '<span style="color:#ccc;">—</span>' : a.ukuran;
-      const qtyCell = isKain ? '<span style="color:#ccc;">—</span>' : a.qty;
-      const kainPcsCell = isKain
-        ? (a.kainItems && a.kainItems.length
-            ? a.kainItems.map(r=>`<div style="font-size:11px;color:#5D4037;">${r.jenisKain||'—'}: <strong>${r.totalKain}yd</strong></div>`).join('')
-            : (a.jenisKain ? `<span style="font-size:11px;color:#5D4037;">${a.jenisKain}: ${a.totalKain}yd</span>` : '<span style="color:#ccc;">—</span>'))
-        : (a.kainItems && a.kainItems.length > 1
-            ? a.kainItems.map(r=>`<div style="font-size:11px;">${r.jenisKain||'—'}: ${r.kainPerPcs}yd</div>`).join('')
-            : ((a.jenisKain ? `<span style="font-size:11px;color:#555;">${a.jenisKain}<br></span>` : '') + (a.kainPerPcs + ' yard')));
-      const nilaiBonus = isKain ? 0 : (a.nilaiBonus || 0);
-      return `<tr${isKain?' style="background:#FFFDE7;"':''}>
+        : isAksesori
+          ? `<span class="badge" style="background:#E1BEE7;color:#6A1B9A;">🎖️ Aksesori</span> ${(a.aksesoriItems||[]).map(r=>`${r.namaItem} ×${r.qty}`).join(', ')}`
+          : a.produk;
+      const ukuranCell = (isKain || isAksesori) ? '<span style="color:#ccc;">—</span>' : a.ukuran;
+      const qtyCell = (isKain || isAksesori) ? '<span style="color:#ccc;">—</span>' : a.qty;
+      const kainPcsCell = isAksesori ? '<span style="color:#ccc;">—</span>'
+        : isKain
+          ? (a.kainItems && a.kainItems.length
+              ? a.kainItems.map(r=>`<div style="font-size:11px;color:#5D4037;">${r.jenisKain||'—'}: <strong>${r.totalKain}yd</strong></div>`).join('')
+              : (a.jenisKain ? `<span style="font-size:11px;color:#5D4037;">${a.jenisKain}: ${a.totalKain}yd</span>` : '<span style="color:#ccc;">—</span>'))
+          : (a.kainItems && a.kainItems.length > 1
+              ? a.kainItems.map(r=>`<div style="font-size:11px;">${r.jenisKain||'—'}: ${r.kainPerPcs}yd</div>`).join('')
+              : ((a.jenisKain ? `<span style="font-size:11px;color:#555;">${a.jenisKain}<br></span>` : '') + (a.kainPerPcs + ' yard')));
+      const nilaiBonus = (isKain || isAksesori) ? 0 : (a.nilaiBonus || 0);
+      const rowStyle = isAksesori ? ' style="background:#F3E5F5;"' : isKain ? ' style="background:#FFFDE7;"' : '';
+      return `<tr${rowStyle}>
         <td>${a.tanggal}${inputByBadge(a.inputByNama)}</td>
         <td>${p?p.nama:'—'}</td>
         <td>${produkCell}</td>
@@ -4958,7 +5027,7 @@ function renderPengambilan() {
         <td class="td-right">${qtyCell}</td>
         <td class="td-right">${kainPcsCell}</td>
         <td class="td-right num">${a.totalKain ? a.totalKain.toFixed(2)+' yard' : '—'}</td>
-        <td class="td-right num">${rp(a.nilaiKain)}</td>
+        <td class="td-right num">${isAksesori ? '—' : rp(a.nilaiKain)}</td>
         <td class="td-right num">${rp(nilaiBonus)}</td>
         <td class="td-right num" style="font-weight:bold;color:var(--green-dark);">${rp(a.grandTotal)}</td>
         <td style="color:#888;font-size:12px;">${a.catatan||'—'}</td>
@@ -5027,6 +5096,16 @@ function openModalPengambilan(id) {
         items.forEach(r => tambahKainLangsungRow(r.jenisKain, r.totalKain, r.hargaKain, r.keterangan || ''));
       }
       updateAmbKainCalc();
+    } else if (a.mode === 'aksesori') {
+      setAmbMode('aksesori');
+      const cAK = document.getElementById('amb-aksesori-rows');
+      if (cAK) {
+        cAK.innerHTML = '';
+        const items = a.aksesoriItems && a.aksesoriItems.length ? a.aksesoriItems : [];
+        items.forEach(r => tambahAksesoriPickupRow(r.namaItem, r.qty, r.harga, r.keterangan || ''));
+        if (!items.length) tambahAksesoriPickupRow();
+      }
+      updateAmbAksesoriCalc();
     } else {
       setAmbMode('spesifik');
       updateAmbProdukOptions();
@@ -5058,6 +5137,9 @@ function openModalPengambilan(id) {
     if (rKR) rKR.innerHTML = '';
     const rKL = document.getElementById('amb-kain-langsung-rows');
     if (rKL) rKL.innerHTML = '';
+    const rAK = document.getElementById('amb-aksesori-rows');
+    if (rAK) rAK.innerHTML = '';
+    document.getElementById('amb-aksesori-nilai-display').textContent = '—';
     document.getElementById('amb-qty').value = '';
     document.getElementById('amb-kain-nilai-display').textContent = '—';
     document.getElementById('amb-calc-box').style.display = 'none';
@@ -5245,22 +5327,26 @@ function updateAmbCalc() {
 
 function setAmbMode(mode) {
   const isKain = mode === 'kain';
-  document.getElementById('amb-section-spesifik').style.display = isKain ? 'none' : 'block';
+  const isAksesori = mode === 'aksesori';
+  document.getElementById('amb-section-spesifik').style.display = (!isKain && !isAksesori) ? 'block' : 'none';
   document.getElementById('amb-section-kain').style.display = isKain ? 'block' : 'none';
+  document.getElementById('amb-section-aksesori').style.display = isAksesori ? 'block' : 'none';
   document.getElementById('amb-calc-box').style.display = 'none';
   const btnSpesifik = document.getElementById('amb-mode-btn-spesifik');
   const btnKain = document.getElementById('amb-mode-btn-kain');
-  if (isKain) {
-    btnKain.style.background = 'var(--green)'; btnKain.style.color = 'white';
-    btnSpesifik.style.background = 'transparent'; btnSpesifik.style.color = '#666';
-  } else {
-    btnSpesifik.style.background = 'var(--green)'; btnSpesifik.style.color = 'white';
-    btnKain.style.background = 'transparent'; btnKain.style.color = '#666';
-  }
+  const btnAksesori = document.getElementById('amb-mode-btn-aksesori');
+  [btnSpesifik, btnKain, btnAksesori].forEach(b => { b.style.background = 'transparent'; b.style.color = '#666'; });
+  if (isKain) { btnKain.style.background = 'var(--green)'; btnKain.style.color = 'white'; }
+  else if (isAksesori) { btnAksesori.style.background = 'var(--green)'; btnAksesori.style.color = 'white'; }
+  else { btnSpesifik.style.background = 'var(--green)'; btnSpesifik.style.color = 'white'; }
   document.getElementById('amb-mode-toggle').dataset.mode = mode;
   if (isKain) {
     const c = document.getElementById('amb-kain-langsung-rows');
     if (c && !c.children.length) tambahKainLangsungRow();
+  }
+  if (isAksesori) {
+    const c = document.getElementById('amb-aksesori-rows');
+    if (c && !c.children.length) tambahAksesoriPickupRow();
   }
 }
 
@@ -5317,7 +5403,7 @@ function onKainLangsungJenisChange(sel) {
   const harga = opt ? parseInt(opt.dataset.harga || 0) : 0;
   const row = sel.closest('.kain-langsung-row');
   const hargaInput = row.querySelector('.kl-harga-kain');
-  if (hargaInput && !hargaInput.value) hargaInput.value = harga || '';
+  if (hargaInput) hargaInput.value = harga || '';
   updateAmbKainCalc();
 }
 
@@ -5346,7 +5432,22 @@ function savePengambilan() {
   if (!tanggal || !penjahitId) { alert('Mohon isi Tanggal dan Penjahit'); return; }
 
   let data;
-  if (mode === 'kain') {
+  if (mode === 'aksesori') {
+    const aksItems = getAksesoriPickupRowsData().filter(r => r.qty > 0 && r.namaItem);
+    if (!aksItems.length) { alert('Isi minimal 1 item aksesori.'); return; }
+    aksItems.forEach(r => { r.nilaiItem = r.qty * r.harga; });
+    const grandTotal = aksItems.reduce((s, r) => s + r.nilaiItem, 0);
+    const namaDisplay = aksItems.map(r => r.namaItem + (r.qty > 1 ? ' ×' + r.qty : '')).join(', ');
+    data = {
+      mode: 'aksesori', tanggal, penjahitId,
+      aksesoriItems: aksItems,
+      produk: 'Aksesori: ' + namaDisplay, ukuran: '—', qty: null,
+      totalKain: 0, nilaiKain: 0, nilaiBonus: 0, grandTotal,
+      bahanSnapshot: [],
+      catatan: document.getElementById('amb-catatan').value.trim(),
+      sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
+    };
+  } else if (mode === 'kain') {
     // MODE: Kasih Kain Langsung
     const kainItems = getKainLangsungRowsData().filter(r => r.totalKain > 0);
     if (!kainItems.length) { alert('Isi minimal 1 baris kain dengan total yard > 0.'); return; }
@@ -5425,7 +5526,7 @@ function konfirmHapusPengambilan(id) {
 // =============================================
 // ---- TAB SWITCHER BAHAN ----
 function switchBahanTab(tab) {
-  ['kain','tambahan','riwayat'].forEach(t => {
+  ['kain','tambahan','riwayat','aksesori'].forEach(t => {
     document.getElementById('tab-bahan-' + t).style.display = t === tab ? 'block' : 'none';
     const btn = document.getElementById('tab-bahan-' + t + '-btn');
     btn.style.color = t === tab ? 'var(--green)' : '#999';
@@ -5434,6 +5535,7 @@ function switchBahanTab(tab) {
   if (tab === 'kain') renderHargaKain();
   if (tab === 'tambahan') { renderBahanTables(); renderBreakdown(); }
   if (tab === 'riwayat') renderRiwayatBahan();
+  if (tab === 'aksesori') renderAksesoriTable();
 }
 
 // =============================================
@@ -5861,6 +5963,153 @@ function getTotalBahanKat(kat) {
   return db.bahan[kat].reduce((s, item) => s + (item.harga || 0), 0);
 }
 
+// =============================================
+//  AKSESORI & ITEM LAIN
+// =============================================
+function renderAksesoriTable() {
+  const list = db.aksesori || [];
+  const tbody = document.getElementById('tbody-aksesori');
+  const emptyHint = document.getElementById('aksesori-empty-hint');
+  if (!list.length) {
+    tbody.innerHTML = '';
+    emptyHint.style.display = 'block';
+    return;
+  }
+  emptyHint.style.display = 'none';
+  tbody.innerHTML = list.map((item, i) => `
+    <tr>
+      <td style="padding:4px 12px;">
+        <input type="text" value="${(item.nama||'').replace(/"/g,'&quot;')}" id="aks-${i}-nama"
+          placeholder="Nama item" style="font-size:13px; width:100%;">
+      </td>
+      <td style="padding:4px 12px;">
+        <input type="number" min="0" step="500" value="${item.harga||0}"
+          id="aks-${i}-harga" style="text-align:right; width:100%;">
+      </td>
+      <td style="padding:4px 12px;">
+        <select id="aks-${i}-satuan" style="font-size:12px; width:100%;">
+          <option ${(item.satuan||'')==='per pcs'?'selected':''}>per pcs</option>
+          <option ${(item.satuan||'')==='per set'?'selected':''}>per set</option>
+          <option ${(item.satuan||'')==='per buah'?'selected':''}>per buah</option>
+          <option ${(item.satuan||'')==='per pasang'?'selected':''}>per pasang</option>
+        </select>
+      </td>
+      <td style="padding:4px 8px; text-align:center;">
+        <button class="btn btn-danger btn-sm" onclick="hapusAksesori(${i})" title="Hapus">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+function tambahAksesori() {
+  _snapshotAksesoriForm();
+  db.aksesori.push({ nama: '', harga: 0, satuan: 'per pcs' });
+  renderAksesoriTable();
+  const last = db.aksesori.length - 1;
+  const el = document.getElementById(`aks-${last}-nama`);
+  if (el) el.focus();
+}
+
+function hapusAksesori(idx) {
+  _snapshotAksesoriForm();
+  db.aksesori.splice(idx, 1);
+  saveDB('shared');
+  renderAksesoriTable();
+}
+
+function saveAksesori() {
+  _snapshotAksesoriForm();
+  db.aksesori = db.aksesori.filter(item => item.nama.trim());
+  saveDB('shared');
+  renderAksesoriTable();
+  const btn = event.target;
+  btn.textContent = '✅ Tersimpan!';
+  setTimeout(() => { btn.textContent = '💾 Simpan'; }, 1500);
+}
+
+function _snapshotAksesoriForm() {
+  (db.aksesori || []).forEach((item, i) => {
+    const n = document.getElementById(`aks-${i}-nama`);
+    const h = document.getElementById(`aks-${i}-harga`);
+    const s = document.getElementById(`aks-${i}-satuan`);
+    if (n) item.nama = n.value;
+    if (h) item.harga = parseFloat(h.value) || 0;
+    if (s) item.satuan = s.value;
+  });
+}
+
+function buildAksesoriPickupRowHtml(namaItem, qty, harga, keterangan) {
+  const opts = (db.aksesori || []).map(a =>
+    `<option value="${a.nama.replace(/"/g,'&quot;')}" data-harga="${a.harga}" ${a.nama === namaItem ? 'selected' : ''}>${a.nama} — ${rp(a.harga)}/${a.satuan||'pcs'}</option>`
+  ).join('');
+  const defaultHarga = harga != null ? harga : '';
+  return `<div class="aksesori-pickup-row" style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:6px;padding:10px;">
+    <div style="display:grid;grid-template-columns:2fr 90px 110px 1.5fr auto;gap:8px;align-items:end;">
+      <div>
+        <label style="font-size:11px;margin-bottom:3px;display:block;font-weight:bold;color:#444;">Item *</label>
+        <select class="aks-nama-item" onchange="onAksesoriItemChange(this)">
+          <option value="">— Pilih Item —</option>${opts}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;margin-bottom:3px;display:block;font-weight:bold;color:#444;">Qty *</label>
+        <input type="number" class="aks-qty" step="1" min="1" placeholder="0" value="${qty != null ? qty : ''}" oninput="updateAmbAksesoriCalc()">
+      </div>
+      <div>
+        <label style="font-size:11px;margin-bottom:3px;display:block;font-weight:bold;color:#444;">Harga/Satuan</label>
+        <input type="number" class="aks-harga" min="0" placeholder="0" value="${defaultHarga}" oninput="updateAmbAksesoriCalc()">
+      </div>
+      <div>
+        <label style="font-size:11px;margin-bottom:3px;display:block;font-weight:bold;color:#444;">Keterangan</label>
+        <input type="text" class="aks-keterangan" placeholder="(opsional)" value="${(keterangan||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button type="button" onclick="hapusAksesoriPickupRow(this)" class="btn btn-danger btn-sm" style="padding:7px 10px;">❌</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tambahAksesoriPickupRow(namaItem, qty, harga, keterangan) {
+  const c = document.getElementById('amb-aksesori-rows');
+  if (!c) return;
+  const div = document.createElement('div');
+  div.innerHTML = buildAksesoriPickupRowHtml(namaItem || '', qty, harga, keterangan || '');
+  c.appendChild(div.firstElementChild);
+  updateAmbAksesoriCalc();
+}
+
+function hapusAksesoriPickupRow(btn) {
+  const c = document.getElementById('amb-aksesori-rows');
+  if (c && c.children.length <= 1) return;
+  btn.closest('.aksesori-pickup-row').remove();
+  updateAmbAksesoriCalc();
+}
+
+function onAksesoriItemChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const harga = opt ? parseInt(opt.dataset.harga || 0) : 0;
+  const row = sel.closest('.aksesori-pickup-row');
+  const hargaInput = row.querySelector('.aks-harga');
+  if (hargaInput) hargaInput.value = harga || '';
+  updateAmbAksesoriCalc();
+}
+
+function getAksesoriPickupRowsData() {
+  const rows = document.querySelectorAll('#amb-aksesori-rows .aksesori-pickup-row');
+  return Array.from(rows).map(row => ({
+    namaItem: row.querySelector('.aks-nama-item').value,
+    qty: parseFloat(row.querySelector('.aks-qty').value) || 0,
+    harga: parseFloat(row.querySelector('.aks-harga').value) || 0,
+    keterangan: row.querySelector('.aks-keterangan').value.trim(),
+  }));
+}
+
+function updateAmbAksesoriCalc() {
+  const rows = getAksesoriPickupRowsData();
+  const totalNilai = rows.reduce((s, r) => s + r.qty * r.harga, 0);
+  document.getElementById('amb-aksesori-nilai-display').textContent = totalNilai > 0 ? rp(totalNilai) : '—';
+}
+
 function renderBreakdown() {
   const produk = document.getElementById('filter-breakdown-produk').value;
 
@@ -5968,22 +6217,62 @@ function renderSesi() {
     const allExtraItems = setoranList.flatMap(st => (st.extraItems || []).map(ei => ({ ...ei, tanggal: st.tanggal })));
     const adaLuarOrder = allExtraItems.length > 0;
 
-    const setoranRows = setoranList.map(st => `
-      <tr style="font-size:12px;">
-        <td>${st.tanggal}${inputByBadge(st.inputByNama)}</td>
-        <td class="td-right">${st.totalPcs} pcs</td>
-        <td class="td-right num">${rp(st.totalNilai)}</td>
-        <td style="color:#666;">${st.catatan || '—'}${st.adaLuarOrder ? ' <span style="background:var(--yellow-bg);color:var(--yellow);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">+LUAR ORDER</span>' : ''}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="hapusSetoran(${st.id},${sesi.id})">✕</button></td>
-      </tr>`).join('');
+    const setoranRows = setoranList.map(st => {
+      const itemDetail = (st.items || []).map(it =>
+        `<div style="color:#1B5E20;">${it.produk} ${it.ukuran}: <strong>${it.qty} pcs</strong> × ${rp(it.harga)} = ${rp(it.total)}</div>`
+      ).join('');
+      const extraDetail = (st.extraItems || []).map(ei =>
+        `<div style="color:#E65100;">⚠️ ${ei.produk} ${ei.ukuran}: <strong>${ei.qty} pcs</strong> × ${rp(ei.harga)} = ${rp(ei.total)} <span style="font-size:10px;">(${ei.status === 'diterima' ? '✅ diterima' : '↩️ kembali'})</span></div>`
+      ).join('');
+      return `<tr style="font-size:12px; vertical-align:top;">
+        <td style="padding:6px 8px; white-space:nowrap;">${st.tanggal}${inputByBadge(st.inputByNama)}</td>
+        <td style="padding:6px 8px;">
+          ${itemDetail ? `<div style="font-size:11px; line-height:1.7;">${itemDetail}</div>` : ''}
+          ${extraDetail ? `<div style="font-size:11px; line-height:1.7; margin-top:2px;">${extraDetail}</div>` : ''}
+          ${st.catatan ? `<div style="color:#888; font-size:11px; margin-top:2px;">📝 ${st.catatan}</div>` : ''}
+          ${st.adaLuarOrder ? ' <span style="background:var(--yellow-bg);color:var(--yellow);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">+LUAR ORDER</span>' : ''}
+        </td>
+        <td class="td-right" style="padding:6px 8px; white-space:nowrap;"><strong>${st.totalPcs} pcs</strong></td>
+        <td class="td-right num" style="padding:6px 8px; white-space:nowrap;"><strong>${rp(st.totalNilai)}</strong></td>
+        <td style="padding:6px 8px;"><button class="btn btn-danger btn-sm" onclick="hapusSetoran(${st.id},${sesi.id})">✕</button></td>
+      </tr>`;
+    }).join('');
 
-    const pengambilanRows = pengambilanList.map(a => `
-      <tr style="font-size:12px;">
-        <td>${a.tanggal}</td>
-        <td>${a.produk} ${a.ukuran}</td>
-        <td class="td-right">${a.totalKain} yard</td>
-        <td class="td-right num">${rp(a.grandTotal)}</td>
-      </tr>`).join('');
+    const pengambilanRows = pengambilanList.map(a => {
+      const isKain = a.mode === 'kain_langsung';
+      const isAksesori = a.mode === 'aksesori';
+      let kainDetail = '';
+      if (isAksesori) {
+        kainDetail = (a.aksesoriItems || []).map(r =>
+          `<div style="color:#6A1B9A;">🎖️ ${r.namaItem}: <strong>${r.qty} ${r.keterangan ? '('+r.keterangan+')' : ''}</strong> = ${rp(r.nilaiItem||0)}</div>`
+        ).join('');
+      } else if (a.kainItems && a.kainItems.length > 1) {
+        kainDetail = a.kainItems.map(r =>
+          `<div style="color:#5D4037;">${r.jenisKain}: <strong>${isKain ? r.totalKain : (r.kainPerPcs+'yd/pcs × '+a.qty+'='+(r.totalKain||0)+'yd')} yard</strong> (${rp(r.hargaKain)}/yd) = ${rp(r.nilaiKain||0)}</div>`
+        ).join('');
+      } else {
+        const jenis = a.jenisKain || (a.kainItems && a.kainItems[0] && a.kainItems[0].jenisKain) || '—';
+        const harga = a.hargaKain || (a.kainItems && a.kainItems[0] && a.kainItems[0].hargaKain) || 0;
+        kainDetail = a.totalKain
+          ? `<div style="color:#5D4037;">${jenis}: <strong>${a.totalKain} yard</strong> (${rp(harga)}/yd)</div>`
+          : '';
+      }
+      const modeBadge = isAksesori
+        ? '<span style="background:#E1BEE7;color:#6A1B9A;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">AKSESORI</span> '
+        : isKain ? '<span style="background:#FFF9C4;color:#F57F17;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">KAIN</span> ' : '';
+      const produkLabel = isAksesori
+        ? (a.aksesoriItems || []).map(r => r.namaItem).join(', ')
+        : isKain ? (a.kainItems && a.kainItems.length > 1 ? a.kainItems.map(r=>r.jenisKain).join(', ') : a.produk)
+        : `${a.produk} ${a.ukuran !== '—' ? a.ukuran : ''} ${a.qty ? '('+a.qty+' pcs)' : ''}`.trim();
+      return `<tr style="font-size:12px; vertical-align:top;">
+        <td style="padding:6px 8px; white-space:nowrap;">${a.tanggal}</td>
+        <td style="padding:6px 8px;">${modeBadge}<strong>${produkLabel}</strong>
+          ${kainDetail ? `<div style="margin-top:3px; font-size:11px; line-height:1.6;">${kainDetail}</div>` : ''}
+        </td>
+        <td class="td-right" style="padding:6px 8px; white-space:nowrap;">${isAksesori ? '—' : (a.totalKain ? a.totalKain.toFixed(2)+' yd' : '—')}</td>
+        <td class="td-right num" style="padding:6px 8px; white-space:nowrap;"><strong>${rp(a.grandTotal)}</strong></td>
+      </tr>`;
+    }).join('');
 
     return `
     <div class="card" style="margin-bottom:16px;">
@@ -6039,7 +6328,7 @@ function renderSesi() {
         <div>
           <div style="font-weight:bold; font-size:13px; margin-bottom:6px; color:var(--green-dark);">📥 Riwayat Setoran</div>
           ${setoranList.length ? `<table style="width:100%; font-size:12px;">
-            <thead><tr><th>Tanggal</th><th class="td-right">Qty</th><th class="td-right">Nilai</th><th>Catatan</th><th></th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Rincian Produk</th><th class="td-right">Qty</th><th class="td-right">Nilai</th><th></th></tr></thead>
             <tbody>${setoranRows}</tbody>
           </table>` : '<div style="color:#bbb; font-size:12px;">Belum ada setoran</div>'}
         </div>
