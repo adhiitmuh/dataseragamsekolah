@@ -6495,18 +6495,31 @@ function saveSesi() {
 let _luarOrderRows = [];
 let _luarOrderIdx = 0;
 
+function _collectLuarOrderState() {
+  return _luarOrderRows.map(idx => ({
+    idx,
+    produk: document.getElementById(`lo-produk-${idx}`)?.value || '',
+    ukuran: document.getElementById(`lo-ukuran-${idx}`)?.value || '',
+    qty:    document.getElementById(`lo-qty-${idx}`)?.value    || '0',
+    harga:  document.getElementById(`lo-harga-${idx}`)?.value  || '0',
+    status: document.getElementById(`lo-status-${idx}`)?.value || 'diterima',
+  }));
+}
+
 function tambahBariLuarOrder() {
+  const state = _collectLuarOrderState();
   const idx = _luarOrderIdx++;
   _luarOrderRows.push(idx);
-  renderLuarOrderRows();
+  renderLuarOrderRows(state);
 }
 
 function hapusBariLuarOrder(idx) {
+  const state = _collectLuarOrderState().filter(r => r.idx !== idx);
   _luarOrderRows = _luarOrderRows.filter(i => i !== idx);
-  renderLuarOrderRows();
+  renderLuarOrderRows(state);
 }
 
-function renderLuarOrderRows() {
+function renderLuarOrderRows(savedState = null) {
   const container = document.getElementById('luar-order-container');
   if (!_luarOrderRows.length) {
     container.innerHTML = '<div style="font-size:12px; color:var(--gray);">Belum ada barang luar order.</div>';
@@ -6550,6 +6563,27 @@ function renderLuarOrderRows() {
         </tr>`).join('')}
     </tbody>
   </table>`;
+  if (savedState) {
+    savedState.forEach(row => {
+      const produkEl = document.getElementById(`lo-produk-${row.idx}`);
+      if (!produkEl) return;
+      produkEl.value = row.produk;
+      if (row.produk) {
+        const sizes = PRODUK_DATA[row.produk]?.sizes || [];
+        const ukuranSel = document.getElementById(`lo-ukuran-${row.idx}`);
+        if (ukuranSel) {
+          ukuranSel.innerHTML = `<option value="">— Pilih —</option>` + sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
+          ukuranSel.value = row.ukuran;
+        }
+      }
+      const qtyEl = document.getElementById(`lo-qty-${row.idx}`);
+      if (qtyEl) qtyEl.value = row.qty;
+      const hargaEl = document.getElementById(`lo-harga-${row.idx}`);
+      if (hargaEl) hargaEl.value = row.harga;
+      const statusEl = document.getElementById(`lo-status-${row.idx}`);
+      if (statusEl) statusEl.value = row.status;
+    });
+  }
   updateLuarOrderSummary();
 }
 
