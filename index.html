@@ -3087,14 +3087,19 @@ function migrateDBFields() {
       });
       if (hadOldName) { p.produkList = [...new Set(migrated)]; penjahitChanged = true; }
     }
+    // Hapus produk dari produkList yang sudah tidak ada di PRODUK_DATA
+    if (p.produkList && p.produkList.length > 0) {
+      const cleaned = p.produkList.filter(n => PRODUK_DATA[n]);
+      if (cleaned.length !== p.produkList.length) { p.produkList = cleaned; penjahitChanged = true; }
+    }
     if (!p.produkList || p.produkList.length === 0) {
-      p.produkList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
+      p.produkList = (PENJAHIT_PRODUK_DEFAULTS[p.nama] || []).filter(n => PRODUK_DATA[n]);
       penjahitChanged = true;
     }
     const defaultList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
     const currentSet = new Set(p.produkList);
     defaultList.forEach(nama => {
-      if (!currentSet.has(nama)) { p.produkList.push(nama); penjahitChanged = true; }
+      if (!currentSet.has(nama) && PRODUK_DATA[nama]) { p.produkList.push(nama); penjahitChanged = true; }
     });
     if (!p.spesialis && PENJAHIT_SPESIALIS_DEFAULT[p.nama]) {
       p.spesialis = PENJAHIT_SPESIALIS_DEFAULT[p.nama];
@@ -4081,7 +4086,8 @@ function addBulkRow() {
   const n = bulkRowCounter;
   const penjahitId = parseInt(document.getElementById('o-penjahit').value) || null;
   const p = penjahitId ? getPenjahit(penjahitId) : null;
-  const produkList = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const rawList = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const produkList = rawList.filter(nm => PRODUK_DATA[nm]);
   const produkOptions = '<option value="">— Pilih Produk —</option>' +
     produkList.map(nm => `<option value="${nm}">${nm}</option>`).join('');
   const tr = document.createElement('tr');
@@ -4118,7 +4124,8 @@ function onBulkProdukChange(n) {
   document.getElementById(`bulk-hint-${n}`).textContent = '';
   document.getElementById(`bulk-untung-${n}`).textContent = '';
   if (!produk || !PRODUK_DATA[produk]) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
-  const sizes = PRODUK_DATA[produk].sizes;
+  const sizes = PRODUK_DATA[produk].sizes || [];
+  if (!sizes.length) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
   ukuranSel.innerHTML = '<option value="">— Ukuran —</option>' +
     sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
   if (sizes.length === 1) { ukuranSel.value = sizes[0].size; onBulkUkuranChange(n); }
@@ -4201,7 +4208,8 @@ function updateOrderProdukByPenjahit() {
   const pId = parseInt(document.getElementById('o-penjahit').value);
   const selProduk = document.getElementById('o-produk');
   const p = pId ? getPenjahit(pId) : null;
-  const list = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const rawList = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const list = rawList.filter(n => PRODUK_DATA[n]);
   selProduk.innerHTML = '<option value="">— Pilih Produk —</option>' +
     list.map(n => `<option value="${n}">${n}</option>`).join('');
   document.getElementById('o-ukuran').innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
@@ -4216,7 +4224,8 @@ function updateOrderUkuranOptions() {
     sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
     return;
   }
-  const sizes = PRODUK_DATA[produk].sizes;
+  const sizes = PRODUK_DATA[produk].sizes || [];
+  if (!sizes.length) { sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>'; return; }
   sel.innerHTML = '<option value="">— Pilih Ukuran —</option>' +
     sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
 }
@@ -5159,7 +5168,8 @@ function updateAmbProdukOptions() {
     return;
   }
   const p = getPenjahit(parseInt(pId));
-  const list = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const rawList = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const list = rawList.filter(n => PRODUK_DATA[n]);
   sel.innerHTML = '<option value="">— Pilih Produk —</option>' +
     list.map(n=>`<option value="${n}">${n}</option>`).join('');
   document.getElementById('amb-ukuran').innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
@@ -5268,8 +5278,10 @@ function updateAmbUkuranOptions() {
     sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
     return;
   }
+  const sizes = PRODUK_DATA[produk].sizes || [];
+  if (!sizes.length) { sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>'; return; }
   sel.innerHTML = '<option value="">— Pilih Ukuran —</option>' +
-    PRODUK_DATA[produk].sizes.map(s=>`<option value="${s.size}">${s.size}</option>`).join('');
+    sizes.map(s=>`<option value="${s.size}">${s.size}</option>`).join('');
   updateAmbCalc();
 }
 
