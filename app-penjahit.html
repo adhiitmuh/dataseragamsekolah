@@ -2852,6 +2852,9 @@ const PRODUK_ORDER_CANONICAL = [
 ];
 PRODUK_NAMES = PRODUK_ORDER_CANONICAL.filter(n => PRODUK_DATA[n])
   .concat(PRODUK_NAMES.filter(n => !PRODUK_ORDER_CANONICAL.includes(n)));
+// Snapshot data produk bawaan (hardcoded) sebagai fallback bila data Firestore
+// tidak lengkap (mis. produk tanpa ukuran karena snapshot lama).
+const PRODUK_DATA_DEFAULT = JSON.parse(JSON.stringify(PRODUK_DATA));
 const TOLERANSI_PERSEN = 10; // Default toleransi 10%
 
 // =============================================
@@ -3151,9 +3154,17 @@ async function loadFromFirestore() {
       if (produkMigrated) saveDB('shared');
     }
 
-    // Sync PRODUK_DATA from Firestore if available
+    // Sync PRODUK_DATA from Firestore if available.
+    // Gabungkan dengan data bawaan: pakai entry Firestore HANYA bila punya ukuran
+    // valid, selain itu jatuh ke data bawaan. Ini mencegah ukuran "hilang" saat
+    // snapshot Firestore lama/tidak lengkap (mis. produk tanpa sizes).
     if (db.produkData && Object.keys(db.produkData).length) {
-      PRODUK_DATA = db.produkData;
+      const merged = JSON.parse(JSON.stringify(PRODUK_DATA_DEFAULT));
+      Object.keys(db.produkData).forEach(k => {
+        const fd = db.produkData[k];
+        if (fd && Array.isArray(fd.sizes) && fd.sizes.length) merged[k] = fd;
+      });
+      PRODUK_DATA = merged;
       const _allKeys = Object.keys(PRODUK_DATA);
       PRODUK_NAMES = PRODUK_ORDER_CANONICAL.filter(n => _allKeys.includes(n))
         .concat(_allKeys.filter(n => !PRODUK_ORDER_CANONICAL.includes(n)));
@@ -4110,13 +4121,23 @@ function addBulkRow() {
   document.getElementById('bulk-rows-container').appendChild(tr);
 }
 
+// Ambil daftar ukuran sebuah produk, dengan fallback ke data bawaan bila data
+// aktif (dari Firestore) kosong/tidak ada ukurannya.
+function getSizesProduk(produk) {
+  let entry = PRODUK_DATA[produk];
+  if (!entry || !Array.isArray(entry.sizes) || !entry.sizes.length) {
+    entry = PRODUK_DATA_DEFAULT[produk];
+  }
+  return (entry && Array.isArray(entry.sizes)) ? entry.sizes : [];
+}
+
 function onBulkProdukChange(n) {
   const produk = document.getElementById(`bulk-produk-${n}`).value;
   const ukuranSel = document.getElementById(`bulk-ukuran-${n}`);
   document.getElementById(`bulk-hint-${n}`).textContent = '';
   document.getElementById(`bulk-untung-${n}`).textContent = '';
-  if (!produk || !PRODUK_DATA[produk]) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
-  const sizes = PRODUK_DATA[produk].sizes;
+  const sizes = getSizesProduk(produk);
+  if (!produk || !sizes.length) { ukuranSel.innerHTML = '<option value="">— Ukuran —</option>'; return; }
   ukuranSel.innerHTML = '<option value="">— Ukuran —</option>' +
     sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
   if (sizes.length === 1) { ukuranSel.value = sizes[0].size; onBulkUkuranChange(n); }
@@ -4210,11 +4231,11 @@ function updateOrderProdukByPenjahit() {
 function updateOrderUkuranOptions() {
   const produk = document.getElementById('o-produk').value;
   const sel = document.getElementById('o-ukuran');
-  if (!produk || !PRODUK_DATA[produk]) {
+  const sizes = getSizesProduk(produk);
+  if (!produk || !sizes.length) {
     sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
     return;
   }
-  const sizes = PRODUK_DATA[produk].sizes;
   sel.innerHTML = '<option value="">— Pilih Ukuran —</option>' +
     sizes.map(s => `<option value="${s.size}">${s.size}</option>`).join('');
 }
@@ -5263,12 +5284,13 @@ function updateAmbKainOptions() {
 function updateAmbUkuranOptions() {
   const produk = document.getElementById('amb-produk').value;
   const sel = document.getElementById('amb-ukuran');
-  if (!produk || !PRODUK_DATA[produk]) {
+  const sizes = getSizesProduk(produk);
+  if (!produk || !sizes.length) {
     sel.innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
     return;
   }
   sel.innerHTML = '<option value="">— Pilih Ukuran —</option>' +
-    PRODUK_DATA[produk].sizes.map(s=>`<option value="${s.size}">${s.size}</option>`).join('');
+    sizes.map(s=>`<option value="${s.size}">${s.size}</option>`).join('');
   updateAmbCalc();
 }
 
