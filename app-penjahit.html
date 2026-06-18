@@ -1521,8 +1521,9 @@ body.dark .page-title { color: #E5E7EB; }
         style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; background:transparent; color:#666;">
         🧵 Kasih Kain Langsung
       </button>
+      <!-- Tab Aksesori disembunyikan: aksesori kini diisi langsung di form (add-on) -->
       <button id="amb-mode-btn-aksesori" onclick="setAmbMode('aksesori')"
-        style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; background:transparent; color:#666;">
+        style="display:none; flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; background:transparent; color:#666;">
         🎖️ Aksesori & Item Lain
       </button>
     </div>
@@ -4972,7 +4973,8 @@ function renderPengambilan() {
   selP.innerHTML = '<option value="">— Semua Penjahit —</option>' +
     db.penjahit.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
   selPr.innerHTML = '<option value="">— Semua Produk —</option>' +
-    PRODUK_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
+    PRODUK_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('') +
+    '<option value="__aksesori__">🎖️ Aksesori & Item Lain</option>';
   const bulanSet = new Set(db.pengambilans.map(a=>bulanStr(a.tanggal)));
   selB.innerHTML = '<option value="">— Semua Bulan —</option>' +
     [...bulanSet].sort().reverse().map(b=>`<option value="${b}">${namabulan(b)}</option>`).join('');
@@ -4982,9 +4984,10 @@ function renderPengambilan() {
   if (prevB) selB.value = prevB;
 
   const fP = selP.value, fPr = selPr.value, fB = selB.value;
+  const matchProduk = a => !fPr || (fPr === '__aksesori__' ? a.mode === 'aksesori' : a.produk === fPr);
   let list = db.pengambilans.filter(a => {
     if (fP && a.penjahitId != fP) return false;
-    if (fPr && a.produk !== fPr) return false;
+    if (!matchProduk(a)) return false;
     if (fB && bulanStr(a.tanggal) !== fB) return false;
     return true;
   }).sort((a,b)=>b.id-a.id);
@@ -5045,7 +5048,7 @@ function renderPengambilan() {
   // Rekap per penjahit
   const rekapMap = {};
   db.pengambilans.forEach(a => {
-    if (fPr && a.produk !== fPr) return;
+    if (!matchProduk(a)) return;
     if (fB && bulanStr(a.tanggal) !== fB) return;
     const p = getPenjahit(a.penjahitId);
     if (!p) return;
@@ -5449,101 +5452,100 @@ function savePengambilan() {
 
   if (!tanggal || !penjahitId) { alert('Mohon isi Tanggal dan Penjahit'); return; }
 
-  let data;
-  if (mode === 'aksesori') {
+  const catatan = document.getElementById('amb-catatan').value.trim();
+  const sesiId = sesiIdVal ? parseInt(sesiIdVal) : null;
+
+  // Bangun catatan aksesori (jika baris aksesori diisi). Aksesori SELALU jadi
+  // catatan terpisah dari kain agar laporan tetap per-section.
+  function buildAksesoriData() {
     const aksItems = getAksesoriPickupRowsData().filter(r => r.qty > 0 && r.namaItem);
-    if (!aksItems.length) { alert('Isi minimal 1 item aksesori.'); return; }
+    if (!aksItems.length) return null;
     aksItems.forEach(r => { r.nilaiItem = r.qty * r.harga; });
     const grandTotal = aksItems.reduce((s, r) => s + r.nilaiItem, 0);
     const namaDisplay = aksItems.map(r => r.namaItem + (r.qty > 1 ? ' ×' + r.qty : '')).join(', ');
-    data = {
+    return {
       mode: 'aksesori', tanggal, penjahitId,
       aksesoriItems: aksItems,
       produk: 'Aksesori: ' + namaDisplay, ukuran: '—', qty: null,
       totalKain: 0, nilaiKain: 0, nilaiBonus: 0, grandTotal,
-      bahanSnapshot: [],
-      catatan: document.getElementById('amb-catatan').value.trim(),
-      sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
+      bahanSnapshot: [], catatan, sesiId,
     };
+  }
+
+  let data = null;        // catatan kain (boleh null = aksesori saja)
+  let aksData = null;     // catatan aksesori terpisah
+
+  if (mode === 'aksesori') {
+    // Hanya dipakai saat mengedit catatan aksesori lama.
+    data = buildAksesoriData();
+    if (!data) { alert('Isi minimal 1 item aksesori.'); return; }
   } else if (mode === 'kain') {
-    // MODE: Kasih Kain Langsung
+    // MODE: Kasih Kain Langsung — kain opsional bila aksesori diisi.
+    aksData = buildAksesoriData();
     const kainItems = getKainLangsungRowsData().filter(r => r.totalKain > 0);
-    if (!kainItems.length) { alert('Isi minimal 1 baris kain dengan total yard > 0.'); return; }
-    if (!kainItems[0].jenisKain) { alert('Pilih jenis kain pada baris pertama.'); return; }
-    kainItems.forEach(r => { r.nilaiKain = r.totalKain * r.hargaKain; });
-    const totalKain = kainItems.reduce((s, r) => s + r.totalKain, 0);
-    const nilaiKain = kainItems.reduce((s, r) => s + r.nilaiKain, 0);
-    const jenisKain = kainItems[0].jenisKain;
-    const hargaKain = kainItems[0].hargaKain;
-    const keteranganKain = kainItems[0].keterangan;
-    const namaDisplay = kainItems.map(r => r.jenisKain + (r.keterangan ? ' — ' + r.keterangan : '')).join(', ');
-    data = {
-      mode: 'kain_langsung', tanggal, penjahitId,
-      kainItems, jenisKain, keteranganKain,
-      produk: namaDisplay, ukuran: '—', qty: null,
-      kainPerPcs: null, hargaKain, totalKain, nilaiKain,
-      nilaiBonus: 0, grandTotal: nilaiKain, bahanSnapshot: [],
-      catatan: document.getElementById('amb-catatan').value.trim(),
-      sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
-    };
+    if (!kainItems.length) {
+      if (!aksData) { alert('Isi minimal 1 baris kain (yard > 0) atau item aksesori.'); return; }
+    } else {
+      if (!kainItems[0].jenisKain) { alert('Pilih jenis kain pada baris pertama.'); return; }
+      kainItems.forEach(r => { r.nilaiKain = r.totalKain * r.hargaKain; });
+      const totalKain = kainItems.reduce((s, r) => s + r.totalKain, 0);
+      const nilaiKain = kainItems.reduce((s, r) => s + r.nilaiKain, 0);
+      const jenisKain = kainItems[0].jenisKain;
+      const hargaKain = kainItems[0].hargaKain;
+      const keteranganKain = kainItems[0].keterangan;
+      const namaDisplay = kainItems.map(r => r.jenisKain + (r.keterangan ? ' — ' + r.keterangan : '')).join(', ');
+      data = {
+        mode: 'kain_langsung', tanggal, penjahitId,
+        kainItems, jenisKain, keteranganKain,
+        produk: namaDisplay, ukuran: '—', qty: null,
+        kainPerPcs: null, hargaKain, totalKain, nilaiKain,
+        nilaiBonus: 0, grandTotal: nilaiKain, bahanSnapshot: [], catatan, sesiId,
+      };
+    }
   } else {
-    // MODE: Per Produk
+    // MODE: Per Produk — kain opsional bila aksesori diisi.
+    aksData = buildAksesoriData();
     const produk = document.getElementById('amb-produk').value;
     const ukuran = document.getElementById('amb-ukuran').value;
-    const qty = parseInt(document.getElementById('amb-qty').value);
-    if (!produk || !ukuran || !qty) { alert('Mohon lengkapi Produk, Ukuran, dan Qty'); return; }
+    const qtyRaw = document.getElementById('amb-qty').value;
+    const qty = parseInt(qtyRaw);
     const kainItems = getKainRowsData().filter(r => r.kainPerPcs > 0);
-    if (!kainItems.length) { alert('Isi minimal 1 baris kain (yard/pcs)'); return; }
-    kainItems.forEach(r => { r.totalKain = r.kainPerPcs * qty; r.nilaiKain = r.totalKain * r.hargaKain; });
-    const totalKain = kainItems.reduce((s,r) => s + r.totalKain, 0);
-    const nilaiKain = kainItems.reduce((s,r) => s + r.nilaiKain, 0);
-    // Backward compat fields (pakai kain pertama)
-    const kainPerPcs = kainItems[0].kainPerPcs;
-    const hargaKain  = kainItems[0].hargaKain;
-    const jenisKain  = kainItems[0].jenisKain;
-    const kat = KATEGORI_BAHAN[produk];
-    const bahanList = kat ? db.bahan[kat] : [];
-    const nilaiBonus = bahanList.reduce((s,b)=>s+(b.harga*qty),0);
-    const grandTotal = nilaiKain + nilaiBonus;
-    const bahanSnapshot = bahanList.map(b=>({nama:b.nama, harga:b.harga, qty, total:b.harga*qty}));
-    data = {
-      mode: 'spesifik', tanggal, penjahitId, produk, ukuran, qty,
-      kainItems, jenisKain, kainPerPcs, hargaKain, totalKain, nilaiKain,
-      nilaiBonus, grandTotal, bahanSnapshot,
-      catatan: document.getElementById('amb-catatan').value.trim(),
-      sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
-    };
+    const adaInputKain = !!produk || !!ukuran || !!qtyRaw || kainItems.length > 0;
+    if (!adaInputKain) {
+      if (!aksData) { alert('Isi Produk + Kain, atau minimal item aksesori.'); return; }
+    } else {
+      if (!produk || !ukuran || !qty) { alert('Mohon lengkapi Produk, Ukuran, dan Qty'); return; }
+      if (!kainItems.length) { alert('Isi minimal 1 baris kain (yard/pcs)'); return; }
+      kainItems.forEach(r => { r.totalKain = r.kainPerPcs * qty; r.nilaiKain = r.totalKain * r.hargaKain; });
+      const totalKain = kainItems.reduce((s,r) => s + r.totalKain, 0);
+      const nilaiKain = kainItems.reduce((s,r) => s + r.nilaiKain, 0);
+      const kainPerPcs = kainItems[0].kainPerPcs;
+      const hargaKain  = kainItems[0].hargaKain;
+      const jenisKain  = kainItems[0].jenisKain;
+      const kat = KATEGORI_BAHAN[produk];
+      const bahanList = kat ? db.bahan[kat] : [];
+      const nilaiBonus = bahanList.reduce((s,b)=>s+(b.harga*qty),0);
+      const grandTotal = nilaiKain + nilaiBonus;
+      const bahanSnapshot = bahanList.map(b=>({nama:b.nama, harga:b.harga, qty, total:b.harga*qty}));
+      data = {
+        mode: 'spesifik', tanggal, penjahitId, produk, ukuran, qty,
+        kainItems, jenisKain, kainPerPcs, hargaKain, totalKain, nilaiKain,
+        nilaiBonus, grandTotal, bahanSnapshot, catatan, sesiId,
+      };
+    }
   }
 
   const id = document.getElementById('amb-id-edit').value;
   if (id) {
+    // Edit: perbarui satu catatan saja (add-on aksesori disembunyikan saat edit).
+    const main = data || aksData;
     const idx = db.pengambilans.findIndex(a=>a.id==id);
-    if (idx!==-1) db.pengambilans[idx] = {...db.pengambilans[idx], ...data};
+    if (idx!==-1) db.pengambilans[idx] = {...db.pengambilans[idx], ...main};
   } else {
-    db.pengambilans.push({id: db.nextPengambilanId++, ...data, ...inputByFields()});
-
-    // Add-on aksesori: di mode kain/per-produk (catatan BARU), bila baris aksesori
-    // diisi, simpan sebagai catatan TERPISAH agar laporan kain & aksesori tetap
-    // terpisah. Staff cukup mengisi semua sekaligus lalu Simpan satu kali.
-    if (mode !== 'aksesori') {
-      const aksItems = getAksesoriPickupRowsData().filter(r => r.qty > 0 && r.namaItem);
-      if (aksItems.length) {
-        aksItems.forEach(r => { r.nilaiItem = r.qty * r.harga; });
-        const aksGrandTotal = aksItems.reduce((s, r) => s + r.nilaiItem, 0);
-        const aksNamaDisplay = aksItems.map(r => r.namaItem + (r.qty > 1 ? ' ×' + r.qty : '')).join(', ');
-        db.pengambilans.push({
-          id: db.nextPengambilanId++,
-          mode: 'aksesori', tanggal, penjahitId,
-          aksesoriItems: aksItems,
-          produk: 'Aksesori: ' + aksNamaDisplay, ukuran: '—', qty: null,
-          totalKain: 0, nilaiKain: 0, nilaiBonus: 0, grandTotal: aksGrandTotal,
-          bahanSnapshot: [],
-          catatan: document.getElementById('amb-catatan').value.trim(),
-          sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
-          ...inputByFields(),
-        });
-      }
-    }
+    // Catatan baru: simpan kain (bila ada) dan aksesori (bila ada) sebagai
+    // catatan TERPISAH. Total tetap utuh karena dijumlah dari grandTotal.
+    if (data) db.pengambilans.push({id: db.nextPengambilanId++, ...data, ...inputByFields()});
+    if (aksData) db.pengambilans.push({id: db.nextPengambilanId++, ...aksData, ...inputByFields()});
   }
   saveDB();
   closeModal('modal-pengambilan');
