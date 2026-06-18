@@ -3907,7 +3907,14 @@ function konfirmHapusPenjahit(id) {
 //  HARGA STANDAR
 // =============================================
 function renderHargaStandar() {
-  const filter = document.getElementById('filter-produk-harga').value;
+  // Isi ulang dropdown produk dari master terbaru (jaga pilihan saat ini)
+  const selHS = document.getElementById('filter-produk-harga');
+  const prevHS = selHS.value;
+  selHS.innerHTML = '<option value="">— Semua Produk —</option>' +
+    PRODUK_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (prevHS && PRODUK_NAMES.includes(prevHS)) selHS.value = prevHS;
+
+  const filter = selHS.value;
   const container = document.getElementById('container-harga-standar');
   const isAdmin = currentUserData && currentUserData.role === 'admin';
   const simNaik = parseFloat(document.getElementById('sim-naik-harga')?.value) || 0;
@@ -4469,8 +4476,15 @@ function renderAnalisisPerProduk() {
 }
 
 function renderSimulator() {
+  // Isi ulang dropdown produk dari master terbaru (jaga pilihan saat ini)
+  const selSim = document.getElementById('sim-produk');
+  const prevSim = selSim.value;
+  selSim.innerHTML = '<option value="">— Semua Produk —</option>' +
+    PRODUK_NAMES.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (prevSim && PRODUK_NAMES.includes(prevSim)) selSim.value = prevSim;
+
   const kenaikan = parseFloat(document.getElementById('sim-kenaikan').value) || 0;
-  const filterProduk = document.getElementById('sim-produk').value;
+  const filterProduk = selSim.value;
   const box = document.getElementById('simulator-result');
 
   const names = filterProduk ? [filterProduk] : PRODUK_NAMES;
@@ -4478,6 +4492,7 @@ function renderSimulator() {
 
   names.forEach(name => {
     const p = PRODUK_DATA[name];
+    if (!p) return;
     const rows = p.sizes.map(s => {
       const naik = Math.round((kenaikan * getKainPcs(name, s.size)) + p.bahanPenjahit);
       const newModal = s.modal + naik;
