@@ -1589,14 +1589,17 @@ body.dark .page-title { color: #E5E7EB; }
       </div>
     </div>
 
-    <!-- MODE: Aksesori & Item Lain -->
+    <!-- MODE: Aksesori & Item Lain (juga tampil sbg add-on opsional di mode kain) -->
     <div id="amb-section-aksesori" style="display:none;">
-      <div style="background:#F3E5F5; border:1px solid #CE93D8; border-radius:6px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#4A148C;">
+      <div id="amb-aksesori-addon-head" style="display:none; font-weight:bold; color:#6A1B9A; margin:14px 0 6px; border-top:1px dashed #CE93D8; padding-top:12px;">
+        🎖️ Aksesori & Item Lain <span style="font-weight:normal; color:#888; font-size:12px;">(opsional — akan disimpan sebagai catatan terpisah)</span>
+      </div>
+      <div id="amb-aksesori-intro" style="background:#F3E5F5; border:1px solid #CE93D8; border-radius:6px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#4A148C;">
         🎖️ Catat pengambilan aksesori atau item pelengkap (badge, emblem, dll). Item dikelola di Master DB Bahan → Aksesori.
       </div>
       <div class="form-group">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <label style="margin:0;">Daftar Item yang Diambil *</label>
+          <label style="margin:0;" id="amb-aksesori-label">Daftar Item yang Diambil *</label>
           <button class="btn btn-outline btn-sm" type="button" onclick="tambahAksesoriPickupRow()">+ Tambah Item</button>
         </div>
         <div id="amb-aksesori-rows" style="display:flex; flex-direction:column; gap:6px;"></div>
@@ -5329,10 +5332,24 @@ function updateAmbCalc() {
 function setAmbMode(mode) {
   const isKain = mode === 'kain';
   const isAksesori = mode === 'aksesori';
-  document.getElementById('amb-section-spesifik').style.display = (!isKain && !isAksesori) ? 'block' : 'none';
+  const isSpesifik = !isKain && !isAksesori;
+  const editing = !!document.getElementById('amb-id-edit').value;
+  // Aksesori tampil penuh di mode aksesori, ATAU sebagai add-on opsional di mode
+  // kain/per-produk saat membuat catatan baru (bukan edit).
+  const aksesoriAddon = !isAksesori && !editing;
+  const showAksesori = isAksesori || aksesoriAddon;
+
+  document.getElementById('amb-section-spesifik').style.display = isSpesifik ? 'block' : 'none';
   document.getElementById('amb-section-kain').style.display = isKain ? 'block' : 'none';
-  document.getElementById('amb-section-aksesori').style.display = isAksesori ? 'block' : 'none';
+  document.getElementById('amb-section-aksesori').style.display = showAksesori ? 'block' : 'none';
   document.getElementById('amb-calc-box').style.display = 'none';
+
+  // Tampilan header aksesori: add-on (opsional) vs mode penuh
+  document.getElementById('amb-aksesori-addon-head').style.display = aksesoriAddon ? 'block' : 'none';
+  document.getElementById('amb-aksesori-intro').style.display = isAksesori ? 'block' : 'none';
+  document.getElementById('amb-aksesori-label').textContent =
+    isAksesori ? 'Daftar Item yang Diambil *' : 'Daftar Item yang Diambil (opsional)';
+
   const btnSpesifik = document.getElementById('amb-mode-btn-spesifik');
   const btnKain = document.getElementById('amb-mode-btn-kain');
   const btnAksesori = document.getElementById('amb-mode-btn-aksesori');
@@ -5345,6 +5362,7 @@ function setAmbMode(mode) {
     const c = document.getElementById('amb-kain-langsung-rows');
     if (c && !c.children.length) tambahKainLangsungRow();
   }
+  // Auto-tambah baris aksesori hanya di mode aksesori penuh (add-on dibiarkan kosong krn opsional)
   if (isAksesori) {
     const c = document.getElementById('amb-aksesori-rows');
     if (c && !c.children.length) tambahAksesoriPickupRow();
@@ -5504,6 +5522,29 @@ function savePengambilan() {
     if (idx!==-1) db.pengambilans[idx] = {...db.pengambilans[idx], ...data};
   } else {
     db.pengambilans.push({id: db.nextPengambilanId++, ...data, ...inputByFields()});
+
+    // Add-on aksesori: di mode kain/per-produk (catatan BARU), bila baris aksesori
+    // diisi, simpan sebagai catatan TERPISAH agar laporan kain & aksesori tetap
+    // terpisah. Staff cukup mengisi semua sekaligus lalu Simpan satu kali.
+    if (mode !== 'aksesori') {
+      const aksItems = getAksesoriPickupRowsData().filter(r => r.qty > 0 && r.namaItem);
+      if (aksItems.length) {
+        aksItems.forEach(r => { r.nilaiItem = r.qty * r.harga; });
+        const aksGrandTotal = aksItems.reduce((s, r) => s + r.nilaiItem, 0);
+        const aksNamaDisplay = aksItems.map(r => r.namaItem + (r.qty > 1 ? ' ×' + r.qty : '')).join(', ');
+        db.pengambilans.push({
+          id: db.nextPengambilanId++,
+          mode: 'aksesori', tanggal, penjahitId,
+          aksesoriItems: aksItems,
+          produk: 'Aksesori: ' + aksNamaDisplay, ukuran: '—', qty: null,
+          totalKain: 0, nilaiKain: 0, nilaiBonus: 0, grandTotal: aksGrandTotal,
+          bahanSnapshot: [],
+          catatan: document.getElementById('amb-catatan').value.trim(),
+          sesiId: sesiIdVal ? parseInt(sesiIdVal) : null,
+          ...inputByFields(),
+        });
+      }
+    }
   }
   saveDB();
   closeModal('modal-pengambilan');
