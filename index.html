@@ -3098,8 +3098,15 @@ function migrateDBFields() {
     const defaultList = PENJAHIT_PRODUK_DEFAULTS[p.nama] || [];
     const currentSet = new Set(p.produkList);
     defaultList.forEach(nama => {
-      if (!currentSet.has(nama)) { p.produkList.push(nama); penjahitChanged = true; }
+      // Hanya tambah produk default yang MASIH ADA di master (jangan tambah balik nama lama)
+      if (!currentSet.has(nama) && PRODUK_DATA[nama]) { p.produkList.push(nama); penjahitChanged = true; }
     });
+    // Migrasi sekali jalan: buang produk yang sudah tak ada di master (nama lama).
+    // Guard: hanya jika master cukup lengkap (>=10 produk) agar tak salah hapus saat data minim.
+    if (Object.keys(PRODUK_DATA).length >= 10) {
+      const validList = p.produkList.filter(nama => PRODUK_DATA[nama]);
+      if (validList.length !== p.produkList.length) { p.produkList = validList; penjahitChanged = true; }
+    }
     if (!p.spesialis && PENJAHIT_SPESIALIS_DEFAULT[p.nama]) {
       p.spesialis = PENJAHIT_SPESIALIS_DEFAULT[p.nama];
       penjahitChanged = true;
