@@ -3788,7 +3788,7 @@ function renderPenjahit() {
     }, 0);
     const ambs = db.pengambilans.filter(a => a.penjahitId == p.id);
     const totalAmb = ambs.reduce((s,a) => s + a.grandTotal, 0);
-    const produkBadges = (p.produkList||[]).map(n =>
+    const produkBadges = (p.produkList||[]).filter(n => PRODUK_DATA[n]).map(n =>
       `<span class="badge badge-gray" style="margin:2px;font-size:10px;">${n}</span>`).join('');
     return `<tr data-sort-id="${p.id}">
       <td style="width:28px;"><span class="drag-handle" title="Seret untuk urutkan">⠿</span></td>
@@ -4092,7 +4092,8 @@ function addBulkRow() {
   const n = bulkRowCounter;
   const penjahitId = parseInt(document.getElementById('o-penjahit').value) || null;
   const p = penjahitId ? getPenjahit(penjahitId) : null;
-  const produkList = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const produkList = ((p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES)
+    .filter(nm => PRODUK_DATA[nm]); // hanya produk yang masih ada di master (buang nama lama)
   const produkOptions = '<option value="">— Pilih Produk —</option>' +
     produkList.map(nm => `<option value="${nm}">${nm}</option>`).join('');
   const tr = document.createElement('tr');
@@ -4212,7 +4213,8 @@ function updateOrderProdukByPenjahit() {
   const pId = parseInt(document.getElementById('o-penjahit').value);
   const selProduk = document.getElementById('o-produk');
   const p = pId ? getPenjahit(pId) : null;
-  const list = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const list = ((p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES)
+    .filter(n => PRODUK_DATA[n]); // hanya produk yang masih ada di master (buang nama lama)
   selProduk.innerHTML = '<option value="">— Pilih Produk —</option>' +
     list.map(n => `<option value="${n}">${n}</option>`).join('');
   document.getElementById('o-ukuran').innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
@@ -5180,7 +5182,8 @@ function updateAmbProdukOptions() {
     return;
   }
   const p = getPenjahit(parseInt(pId));
-  const list = (p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES;
+  const list = ((p && p.produkList && p.produkList.length) ? p.produkList : PRODUK_NAMES)
+    .filter(n => PRODUK_DATA[n]); // hanya produk yang masih ada di master (buang nama lama)
   sel.innerHTML = '<option value="">— Pilih Produk —</option>' +
     list.map(n=>`<option value="${n}">${n}</option>`).join('');
   document.getElementById('amb-ukuran').innerHTML = '<option value="">— Pilih Produk Dulu —</option>';
