@@ -238,6 +238,19 @@ body.is-staff .admin-col { display: none !important; }
   .sidebar-brand .logo, .sidebar-brand .sub, .sidebar-footer { display: none; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
+  /* Isi halaman boleh menyempit (tabel bergeser di dalam kartu, bukan keluar layar) */
+  .main { min-width: 0; padding: 14px; }
+  .card { max-width: 100%; overflow-x: auto; }
+}
+/* HP */
+@media (max-width: 600px) {
+  .sidebar { width: 46px; }
+  .main { padding: 10px 10px 24px; }
+  .card { padding: 12px; margin-bottom: 12px; }
+  .main h1, .main h2 { font-size: 18px; }
+  .main table { font-size: 12px; }
+  .main input:not([type=checkbox]):not([type=radio]), .main select, .main textarea { font-size: 16px; max-width: 100%; }
+  .modal, .modal-box, .modal-content { max-width: calc(100vw - 20px) !important; max-height: calc(100vh - 30px); overflow-y: auto; }
 }
 
 /* ===== DARK MODE TOGGLE BUTTON ===== */
