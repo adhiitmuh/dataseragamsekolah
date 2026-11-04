@@ -342,7 +342,7 @@ body.dark .page-title { color: #E5E7EB; }
 <!-- SIDEBAR -->
 <div class="sidebar">
   <div class="sidebar-brand">
-    <div class="logo"><img src="img/logo-beige.png" alt="harmoni" style="height:22px;display:block"></div>
+    <div class="logo" id="brand-sidebar"><img src="img/logo-beige.png" alt="harmoni" style="height:22px;display:block"></div>
     <div class="sub">Sistem Penjahit</div>
   </div>
 
@@ -410,7 +410,7 @@ body.dark .page-title { color: #E5E7EB; }
       <span class="toggle-track"><span class="toggle-thumb"></span></span>
     </button>
     <button class="logout-btn" onclick="doLogout()">🚪 Keluar</button>
-    <div class="footer-version">v1.0 · Harmoni 2026</div>
+    <div class="footer-version" id="brand-footer">v1.0 · 2026</div>
   </div>
 </div>
 
@@ -1814,7 +1814,7 @@ body.dark .page-title { color: #E5E7EB; }
         <p>Penerima</p>
       </div>
     </div>
-    <div style="margin-top:16px; font-size:10px; color:#888; text-align:center;">Dicetak oleh Sistem Penjahit Harmoni</div>
+    <div style="margin-top:16px; font-size:10px; color:#888; text-align:center;">Dicetak oleh Sistem Penjahit <span class="brand-nama-toko"></span></div>
   </div>
 </div>
 
@@ -1902,8 +1902,7 @@ body.dark .page-title { color: #E5E7EB; }
 <div id="login-overlay">
   <div class="login-box">
     <div class="login-logo">
-      <img src="img/logo-green.png" alt="harmoni" style="height:40px;display:block;margin:0 auto 8px">
-      <div class="tagline">Wear Your Identity</div>
+      <div id="brand-login"></div>
       <p>Sistem Manajemen Penjahit</p>
     </div>
     <div class="login-error" id="login-error"></div>
@@ -3546,9 +3545,34 @@ function tokoLabel(tokoId) {
   return tokoId === 'harmonis_sentral' ? 'Harmonis Sentral' : 'Harmoni Indonesia';
 }
 
+// ── Merek per toko: logo Harmoni hanya untuk Harmoni Indonesia; Harmonis Sentral tanpa merek Harmoni ──
+const _ikonHarmoni = [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"], meta[name="theme-color"]')]
+function terapkanBrandToko(toko) {
+  const isHI = toko === 'harmoni_indonesia';
+  const nama = toko === 'harmoni_indonesia' ? 'Harmoni Indonesia' : toko === 'harmonis_sentral' ? 'Harmonis Sentral' : '';
+  try { if (toko) localStorage.setItem('sp_toko', toko); } catch {}
+  const sb = document.getElementById('brand-sidebar');
+  if (sb) sb.innerHTML = isHI
+    ? '<img src="img/logo-beige.png" alt="harmoni" style="height:22px;display:block">'
+    : `✂ <span>${nama || 'Sistem Penjahit'}</span>`;
+  const lg = document.getElementById('brand-login');
+  if (lg) lg.innerHTML = isHI
+    ? '<img src="img/logo-green.png" alt="harmoni" style="height:40px;display:block;margin:0 auto 8px"><div class="tagline">Wear Your Identity</div>'
+    : `<div class="logo-icon">✂️</div><h1>${nama || 'Sistem Penjahit'}</h1>`;
+  const ft = document.getElementById('brand-footer');
+  if (ft) ft.textContent = `v1.0 · ${nama ? nama + ' ' : ''}2026`;
+  document.querySelectorAll('.brand-nama-toko').forEach(el => { el.textContent = nama; });
+  document.title = `Sistem Penjahit${nama ? ' — ' + nama : ''}`;
+  // Ikon tab & layar utama Harmoni hanya untuk Harmoni Indonesia
+  _ikonHarmoni.forEach(el => { if (isHI) { if (!el.isConnected) document.head.appendChild(el); } else el.remove(); });
+}
+// Sebelum login: pakai toko terakhir di perangkat ini (bawaan: tanpa merek Harmoni)
+try { terapkanBrandToko(localStorage.getItem('sp_toko') || ''); } catch { terapkanBrandToko(''); }
+
 async function switchToko(newToko) {
   if (newToko === currentToko) return;
   currentToko = newToko;
+  terapkanBrandToko(newToko);
   document.getElementById('toko-select').value = newToko;
   showLoading('Ganti toko...');
   await loadFromFirestore();
@@ -3574,6 +3598,7 @@ auth.onAuthStateChanged(async (user) => {
     }
     currentUserData = userData;
     currentToko = userData.toko || 'harmonis_sentral';
+    terapkanBrandToko(currentToko);
     if (userData._rawToko && userData._rawToko !== currentToko) {
       showLoading('Migrasi data toko...');
       await migrateTokoPath(userData._rawToko, currentToko);
@@ -7770,7 +7795,7 @@ function printLaporan(tipe) {
 
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Laporan Harmoni Penjahit</title>
+    <title>Laporan Penjahit ${tokoLabel(currentToko)}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 24px; color: #222; font-size: 13px; }
       h2, h3 { margin: 0 0 8px; }
@@ -7799,7 +7824,7 @@ function printLaporan(tipe) {
   </head><body>
     ${headerHtml}
     ${sections}
-    <div style="margin-top:32px; font-size:11px; color:#aaa; text-align:right;">Harmoni Penjahit System — ${today()}</div>
+    <div style="margin-top:32px; font-size:11px; color:#aaa; text-align:right;">Sistem Penjahit ${tokoLabel(currentToko)} — ${today()}</div>
     <script>window.onload = function(){ window.print(); }<\/script>
   </body></html>`);
   win.document.close();
