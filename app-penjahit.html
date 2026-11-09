@@ -2502,6 +2502,46 @@ let PRODUK_DATA = {
       {size:'No. 36', modal:68500, hargaJual:95000, kain:1.14, kenaikJual:10000},
     ]
   },
+  'Celana Panjang Pramuka Laricci SMP': {
+    kategori: 'Celana',
+    kainInfo: 'Kain Laricci Pramuka Bawahan Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 25', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 26', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 27', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 28', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 29', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 30', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 31', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 32', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 33', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 34', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 35', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 36', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+    ]
+  },
+  'Celana Panjang Pramuka Laricci SMA': {
+    kategori: 'Celana',
+    kainInfo: 'Kain Laricci Pramuka Bawahan Rp 38.000/yard',
+    bahanPenjahit: 500,
+    sizes: [
+      {size:'No. 24', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 25', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 26', modal:72000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 27', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 28', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 29', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 30', modal:77000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 31', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 32', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 33', modal:83000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 34', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 35', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+      {size:'No. 36', modal:88000, hargaJual:0, kain:0, kenaikJual:5000},
+    ]
+  },
   'Celana Panjang Pramuka SMP': {
     kategori: 'Celana',
     kainInfo: 'Kain Famatex Pramuka Rp 38.000/yard',
@@ -2566,6 +2606,9 @@ let PRODUK_DATA = {
   }
 };
 
+// Salinan daftar produk bawaan (PRODUK_DATA nanti diganti data dari Firestore)
+const PRODUK_DATA_DEFAULT = JSON.parse(JSON.stringify(PRODUK_DATA));
+
 // Default jenis kain & harga per yard
 const JENIS_KAIN_DEFAULT = [
   { nama: 'Kain Putih',              harga: 25000 },
@@ -2588,6 +2631,8 @@ const JENIS_KAIN_DEFAULT = [
 
 // Mapping produk → jenis kain (default, bisa diubah di Master DB)
 const PRODUK_KAIN_MAP_DEFAULT = {
+  'Celana Panjang Pramuka Laricci SMP': 'Laricci Pramuka Bawahan',
+  'Celana Panjang Pramuka Laricci SMA': 'Laricci Pramuka Bawahan',
   'Baju Putih Lengan Pendek SD':  'Kain Putih',
   'Baju Putih Lengan Pendek SMP': 'Kain Putih',
   'Baju Putih Lengan Pendek SMA': 'Kain Putih',
@@ -2817,6 +2862,8 @@ const KATEGORI_BAHAN = {
   'Rok Rempel Pramuka SMP': 'rok_rempel',
   'Rok Rempel Pramuka SMA': 'rok_rempel',
   'Celana Panjang Pramuka SMP': 'celana',
+  'Celana Panjang Pramuka Laricci SMP': 'celana',
+  'Celana Panjang Pramuka Laricci SMA': 'celana',
   'Celana Panjang Pramuka SMA': 'celana',
   'Rompi SD': 'rompi',
 };
@@ -2861,6 +2908,7 @@ const PRODUK_ORDER_CANONICAL = [
   'Celana Panjang Pramuka SD','Celana Pendek Pramuka SD',
   'Celana Panjang SMP','Celana Panjang SMA',
   'Celana Panjang Pramuka SMP','Celana Panjang Pramuka SMA',
+  'Celana Panjang Pramuka Laricci SMP','Celana Panjang Pramuka Laricci SMA',
   'Rok Rempel SD Panjang','Rok Rempel SD Pendek',
   'Rok Panjang Pramuka SD','Rok Pendek Pramuka SD',
   'Rok Span SMP','Rok Span SMA',
@@ -3145,6 +3193,7 @@ async function loadFromFirestore() {
       db.produkKainMap   = s.produkKainMap   || null;
       db.kainOverride    = s.kainOverride    || {};
       db.produkData      = s.produkData      || null;
+      db.produkSeed      = s.produkSeed      || [];
       db.nextPenjahitId  = s.nextPenjahitId  || 7;
     } else {
       // First run — seed defaults
@@ -3173,6 +3222,14 @@ async function loadFromFirestore() {
           delete db.produkData[name];
           produkMigrated = true;
         }
+      });
+      // Produk baru dari Owner: ditambahkan sekali ke data bersama (kalau nanti dihapus, tidak muncul lagi)
+      const SEED = { 'laricci-2026-11': ['Celana Panjang Pramuka Laricci SMP', 'Celana Panjang Pramuka Laricci SMA'] };
+      if (!Array.isArray(db.produkSeed)) db.produkSeed = [];
+      Object.entries(SEED).forEach(([kunci, nama]) => {
+        if (db.produkSeed.includes(kunci)) return;
+        nama.forEach(n => { if (!db.produkData[n] && PRODUK_DATA_DEFAULT[n]) db.produkData[n] = JSON.parse(JSON.stringify(PRODUK_DATA_DEFAULT[n])) });
+        db.produkSeed.push(kunci); produkMigrated = true;
       });
       if (produkMigrated) saveDB('shared');
     }
@@ -3356,6 +3413,7 @@ async function _saveDBAsync(section) {
         produkKainMap:  db.produkKainMap,
         kainOverride:   db.kainOverride,
         produkData:     db.produkData,
+        produkSeed:     db.produkSeed || [],
         nextPenjahitId: db.nextPenjahitId,
       });
     }
